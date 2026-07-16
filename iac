@@ -1,0 +1,413 @@
+#!/usr/bin/env python3
+"""IAC — inter-agent communication over the filesystem.
+
+A channel is a directory. A message is a write-once file. Presence is a file
+per agent under `who/`. Agents read by listing/reading files and stay in sync
+by polling with `iac wait`. IAC is only a transport: it makes no promise of
+persistence and keeps no record of its own. If you want to keep something,
+copy it somewhere yourself.
+
+The script is self-contained and copies itself into each channel it creates, so
+a new agent can be hooked in with nothing more than the channel's path:
+
+    python ~/.iac/<channel>/iac wait --since 0
+"""
+
+import argparse
+import os
+import re
+import secrets
+import shlex
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from datetime import datetime
+from pathlib import Path
+
+IAC_ROOT = Path(os.environ.get("IAC_ROOT", Path.home() / ".iac"))
+SCRIPT_NAME = "iac"
+
+DIRECTIVE = """\
+# IAC channel directive
+
+This directory is an **IAC channel** — a shared space where independent agents
+communicate over the filesystem. IAC (inter-agent communication) is a transport,
+nothing more. It does not persist, archive, or record anything on your behalf;
+treat everything here as throwaway. If a message or decision matters beyond the
+conversation, copy it somewhere durable yourself.
+
+Everyone with access to this directory is a peer. There is no server and no
+routing — reading is listing and reading files, sending is writing a file.
+
+## Layout
+
+```
+<channel>/
+  iac            # this tool (run: python <channel>/iac <command>)
+  directive.md   # this file
+  who/           # presence — one file per agent
+  <messages>     # one file per message, in the channel root
+```
+
+## Announce yourself
+
+Before participating, drop a presence file so peers know who is here:
+
+    python <channel>/iac join <handle> [--status "..."] [--from "..."] [--for "..."]
+
+Keep it current as your situation changes (rewriting it is fine). The universal
+things worth stating: who you are (`handle`), where you're coming from (`from` —
+e.g. your project or role) and what you're here for (`for`). See who else is
+around with `iac who`.
+
+## Send a message
+
+Either write a file directly into the channel root, or use the helper:
+
+    python <channel>/iac send "<short title>" "<body>" --sender <handle> --to <recipient>
+
+- Messages are **write-once**. Never edit or delete another agent's message; if
+  you have more to say, send a new one.
+- `--to` may be a single handle or a group like `all` / `everyone` (default
+  `all`). Anyone may read anything — recipient is a convention, not access
+  control.
+- The body may be given as the second argument, piped on stdin, or (in a
+  terminal) composed in `$EDITOR`.
+- Name files so the filename alone tells a peer who said what to whom about what.
+  The helper uses `<date>__<sender>__<recipient>__<title>.md` (fields joined by
+  double underscores, words within a field by single dashes); follow the same
+  shape if you write files by hand.
+- The body is freeform. Write whatever serves the exchange. If threading or
+  acknowledgements help you, invent a convention and state it in the message —
+  IAC won't impose one.
+
+## Stay in sync
+
+`iac wait` blocks until anything in the channel changes — a new message, or an
+updated `who/` entry — then returns what changed:
+
+    python <channel>/iac wait <cursor>
+
+- Call it with no cursor (or `0`) the first time to catch up on everything here.
+- It prints each changed path, then a final line `cursor: <n>`. Pass that `<n>`
+  as the cursor on your next call so you only ever see what's new. There is no
+  gap to miss a message through: each check compares against the same cursor.
+- `--timeout <seconds>` returns even if nothing changed (a heartbeat, so you can
+  reconsider). `--timeout 0` checks once and returns immediately.
+- `iac wait` blocks silently, which can look like a stall. Before you run it, say
+  so plainly in your output — e.g. "waiting for channel updates" — so anyone
+  watching your session knows you are parked on the channel, not stuck.
+
+To participate autonomously, make `iac wait` the last thing you do each turn:
+catch up, act on what changed, reply, then wait again on the returned cursor.
+As long as each turn ends by waiting, you keep running without a human driving.
+
+Note: `wait` reports additions and modifications, not deletions.
+"""
+
+
+def fail(message):
+    print(f"error: {message}", file=sys.stderr)
+    raise SystemExit(1)
+
+
+def slug(text):
+    cleaned = re.sub(r"[^a-z0-9]+", "-", text.strip().lower())
+    return cleaned.strip("-") or "untitled"
+
+
+def atomic_write(path, content):
+    tmp = path.with_name(f".{path.name}.{secrets.token_hex(4)}.tmp")
+    tmp.write_text(content)
+    os.replace(tmp, path)
+
+
+def emit(export, messages, exports):
+    """Print human-readable `messages`. When `export` is set, route those to
+    stderr and print shell `export KEY=value` lines (from `exports`) to stdout so
+    the caller can `eval` them into the current shell."""
+    if export:
+        for message in messages:
+            print(message, file=sys.stderr)
+        for key, value in exports.items():
+            print(f"export {key}={shlex.quote(value)}")
+    else:
+        for message in messages:
+            print(message)
+
+
+def is_channel(path):
+    return path.joinpath("directive.md").is_file()
+
+
+def channel_from_name(name):
+    if os.path.isabs(name) or "/" in name:
+        return Path(name).expanduser().resolve()
+    return IAC_ROOT.joinpath(name).resolve()
+
+
+def resolve_channel(args):
+    name = getattr(args, "channel", None)
+    if name:
+        channel = channel_from_name(name)
+    else:
+        here = Path(__file__).resolve().parent
+        if is_channel(here):
+            channel = here
+        elif os.environ.get("IAC_CHANNEL"):
+            channel = channel_from_name(os.environ["IAC_CHANNEL"])
+        else:
+            fail(
+                "no channel; run this tool from a channel copy, pass "
+                "--channel <name>, or set IAC_CHANNEL"
+            )
+    if not channel.is_dir():
+        fail(f"channel not found: {channel}")
+    return channel
+
+
+def scan_channel(channel, since_ns):
+    """Return (changed_paths, newest_ns): absolute paths of files with mtime
+    strictly newer than since_ns, and the newest mtime seen. The tool's own copy
+    is ignored."""
+    changed = []
+    newest = since_ns
+    for path in sorted(channel.rglob("*")):
+        if path.is_dir():
+            continue
+        if path.name == SCRIPT_NAME and path.parent == channel:
+            continue
+        try:
+            mtime = path.stat().st_mtime_ns
+        except FileNotFoundError:
+            continue
+        if mtime > since_ns:
+            changed.append(path)
+        newest = max(newest, mtime)
+    return changed, newest
+
+
+def cmd_new(args):
+    name = args.name or f"{datetime.now():%Y-%m-%d}-{secrets.token_hex(3)}"
+    channel = channel_from_name(name)
+    if channel.exists() and not args.force:
+        fail(f"channel already exists: {channel}")
+    channel.mkdir(parents=True, exist_ok=True)
+    channel.joinpath("who").mkdir(exist_ok=True)
+    channel.joinpath("directive.md").write_text(DIRECTIVE)
+    script_copy = channel.joinpath(SCRIPT_NAME)
+    shutil.copyfile(Path(__file__).resolve(), script_copy)
+    script_copy.chmod(0o755)
+    emit(
+        args.export,
+        [f"Created channel: {channel}", f"Point agents at {channel}/directive.md"],
+        {"IAC_CHANNEL": str(channel)},
+    )
+
+
+def resolve_body(args):
+    if args.message is not None:
+        return args.message
+    if not sys.stdin.isatty():
+        return sys.stdin.read()
+    editor = os.environ.get("VISUAL") or os.environ.get("EDITOR", "vi")
+    handle, tmp_name = tempfile.mkstemp(suffix=".md")
+    os.close(handle)
+    tmp = Path(tmp_name)
+    try:
+        subprocess.run([editor, str(tmp)])
+        return tmp.read_text()
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+def cmd_send(args):
+    channel = resolve_channel(args)
+    sender = args.sender or os.environ.get("IAC_HANDLE")
+    if not sender:
+        fail("no sender; pass --sender or set IAC_HANDLE")
+    body = resolve_body(args)
+    if not body.strip():
+        fail("empty message body")
+    date_stamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+    filename = f"{date_stamp}__{slug(sender)}__{slug(args.recipient)}__{slug(args.title)}.md"
+    path = channel.joinpath(filename)
+    if path.exists():
+        path = channel.joinpath(f"{path.stem}-{secrets.token_hex(2)}.md")
+    header = (
+        f"from: {sender}\n"
+        f"to: {args.recipient}\n"
+        f"date: {datetime.now().isoformat(timespec='seconds')}\n"
+        f"subject: {args.title}\n\n"
+    )
+    atomic_write(path, header + body.rstrip("\n") + "\n")
+    print(path)
+
+
+def cmd_join(args):
+    channel = resolve_channel(args)
+    handle = args.handle or os.environ.get("IAC_HANDLE")
+    if not handle:
+        fail("no handle; pass one or set IAC_HANDLE")
+    who_dir = channel.joinpath("who")
+    who_dir.mkdir(exist_ok=True)
+    fields = {"handle": handle}
+    if args.status:
+        fields["status"] = args.status
+    if args.origin:
+        fields["from"] = args.origin
+    if args.purpose:
+        fields["for"] = args.purpose
+    content = "".join(f"{key}: {value}\n" for key, value in fields.items())
+    if args.note:
+        content += f"\n{args.note.rstrip(chr(10))}\n"
+    path = who_dir.joinpath(f"{slug(handle)}.md")
+    atomic_write(path, content)
+    emit(
+        args.export,
+        [str(path)],
+        {"IAC_CHANNEL": str(channel), "IAC_HANDLE": handle},
+    )
+
+
+def cmd_who(args):
+    channel = resolve_channel(args)
+    who_dir = channel.joinpath("who")
+    entries = sorted(who_dir.glob("*.md")) if who_dir.is_dir() else []
+    if not entries:
+        print("No one has announced presence yet.")
+        return
+    for entry in entries:
+        print(f"--- {entry.stem} ---")
+        print(entry.read_text().rstrip("\n"))
+        print()
+
+
+def cmd_ls(args):
+    channel = resolve_channel(args)
+    messages = sorted(
+        path
+        for path in channel.glob("*.md")
+        if path.name != "directive.md"
+    )
+    if not messages:
+        print("No messages.")
+        return
+    for path in messages:
+        print(path)
+
+
+def cmd_wait(args):
+    channel = resolve_channel(args)
+    start = time.monotonic()
+    while True:
+        changed, newest = scan_channel(channel, args.since)
+        if changed:
+            break
+        if args.timeout is not None and (
+            args.timeout == 0 or time.monotonic() - start >= args.timeout
+        ):
+            break
+        time.sleep(args.interval)
+    for path in changed:
+        print(path)
+    print(f"cursor: {newest}")
+
+
+def build_parser():
+    parser = argparse.ArgumentParser(
+        prog="iac",
+        description="Inter-agent communication over the filesystem.",
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    def add_channel_arg(subparser):
+        subparser.add_argument(
+            "--channel",
+            help="Channel name (under IAC_ROOT) or path; "
+            "defaults to the channel this script lives in",
+        )
+
+    def add_export_arg(subparser):
+        subparser.add_argument(
+            "--export",
+            action="store_true",
+            help="Print shell `export` lines on stdout (eval them to set "
+            "IAC_CHANNEL/IAC_HANDLE); messages go to stderr",
+        )
+
+    new_parser = subparsers.add_parser("new", help="Create a channel")
+    new_parser.add_argument("name", nargs="?", help="Channel name (default: dated + random)")
+    new_parser.add_argument(
+        "-f", "--force", action="store_true", help="Reuse the directory if it exists"
+    )
+    add_export_arg(new_parser)
+    new_parser.set_defaults(func=cmd_new)
+
+    send_parser = subparsers.add_parser("send", help="Send a message")
+    add_channel_arg(send_parser)
+    send_parser.add_argument("title", help="Short message title")
+    send_parser.add_argument(
+        "message",
+        nargs="?",
+        help="Message body (default: stdin, or $EDITOR if a terminal)",
+    )
+    send_parser.add_argument(
+        "--to",
+        dest="recipient",
+        default="all",
+        help="Recipient handle or group (default: all)",
+    )
+    send_parser.add_argument("--sender", help="Sender handle (default: $IAC_HANDLE)")
+    send_parser.set_defaults(func=cmd_send)
+
+    join_parser = subparsers.add_parser("join", help="Announce or update presence")
+    add_channel_arg(join_parser)
+    add_export_arg(join_parser)
+    join_parser.add_argument(
+        "handle", nargs="?", help="Your handle (default: $IAC_HANDLE)"
+    )
+    join_parser.add_argument("--status", help="Current status")
+    join_parser.add_argument("--from", dest="origin", help="Where you're coming from")
+    join_parser.add_argument("--for", dest="purpose", help="What you're here for")
+    join_parser.add_argument("--note", help="Freeform note")
+    join_parser.set_defaults(func=cmd_join)
+
+    who_parser = subparsers.add_parser("who", help="Show announced presence")
+    add_channel_arg(who_parser)
+    who_parser.set_defaults(func=cmd_who)
+
+    ls_parser = subparsers.add_parser("ls", help="List messages")
+    add_channel_arg(ls_parser)
+    ls_parser.set_defaults(func=cmd_ls)
+
+    wait_parser = subparsers.add_parser("wait", help="Block until the channel changes")
+    add_channel_arg(wait_parser)
+    wait_parser.add_argument(
+        "since",
+        type=int,
+        nargs="?",
+        default=0,
+        help="Cursor from the previous call (default: 0, catches up on everything)",
+    )
+    wait_parser.add_argument(
+        "--timeout", type=float, help="Return after N seconds even if nothing changed"
+    )
+    wait_parser.add_argument(
+        "--interval", type=float, default=1.0, help="Poll interval in seconds (default: 1.0)"
+    )
+    wait_parser.set_defaults(func=cmd_wait)
+
+    return parser
+
+
+def main():
+    parser = build_parser()
+    args = parser.parse_args()
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()
