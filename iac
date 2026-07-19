@@ -10,7 +10,7 @@ copy it somewhere yourself.
 The script is self-contained and copies itself into each channel it creates, so
 a new agent can be hooked in with nothing more than the channel's path:
 
-    python ~/.iac/<channel>/iac wait --since 0
+    python ~/.iac/<channel>/iac wait 0
 """
 
 import argparse
@@ -48,7 +48,8 @@ routing — reading is listing and reading files, sending is writing a file.
   iac            # this tool (run: python <channel>/iac <command>)
   directive.md   # this file
   who/           # presence — one file per agent
-  <messages>     # one file per message, in the channel root
+  messages/      # one file per message
+  tmp/           # scratch for atomic writes — ignore it
 ```
 
 ## Announce yourself
@@ -64,7 +65,7 @@ around with `iac who`.
 
 ## Send a message
 
-Either write a file directly into the channel root, or use the helper:
+Either drop a file into `messages/`, or use the helper:
 
     python <channel>/iac send "<short title>" "<body>" --sender <handle> --to <recipient>
 
@@ -118,8 +119,17 @@ def slug(text):
     return cleaned.strip("-") or "untitled"
 
 
-def atomic_write(path, content):
-    tmp = path.with_name(f".{path.name}.{secrets.token_hex(4)}.tmp")
+def channel_tmp(channel):
+    return channel.joinpath("tmp")
+
+
+def atomic_write(path, content, tmp_dir):
+    """Write `content` to `path` atomically, staging through `tmp_dir`. The
+    staging directory must share a filesystem with `path` so the final `replace`
+    is a rename rather than a copy; keeping it under the channel guarantees that
+    and keeps the transient file out of the message/presence dirs `wait` scans."""
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    tmp = tmp_dir.joinpath(f".{path.name}.{secrets.token_hex(4)}.tmp")
     tmp.write_text(content)
     os.replace(tmp, path)
 
@@ -170,23 +180,26 @@ def resolve_channel(args):
 
 def scan_channel(channel, since_ns):
     """Return (changed_paths, newest_ns): absolute paths of files with mtime
-    strictly newer than since_ns, and the newest mtime seen. The tool's own copy
-    is ignored."""
+    strictly newer than since_ns, and the newest mtime seen. Only the content
+    dirs (`messages/`, `who/`) are scanned, so the tool, the directive, and
+    in-flight `tmp/` writes never surface as changes."""
     changed = []
     newest = since_ns
-    for path in sorted(channel.rglob("*")):
-        if path.is_dir():
+    for subdir in ("messages", "who"):
+        base = channel.joinpath(subdir)
+        if not base.is_dir():
             continue
-        if path.name == SCRIPT_NAME and path.parent == channel:
-            continue
-        try:
-            mtime = path.stat().st_mtime_ns
-        except FileNotFoundError:
-            continue
-        if mtime > since_ns:
-            changed.append(path)
-        newest = max(newest, mtime)
-    return changed, newest
+        for path in base.rglob("*"):
+            if path.is_dir():
+                continue
+            try:
+                mtime = path.stat().st_mtime_ns
+            except FileNotFoundError:
+                continue
+            if mtime > since_ns:
+                changed.append(path)
+            newest = max(newest, mtime)
+    return sorted(changed), newest
 
 
 def cmd_new(args):
@@ -196,6 +209,8 @@ def cmd_new(args):
         fail(f"channel already exists: {channel}")
     channel.mkdir(parents=True, exist_ok=True)
     channel.joinpath("who").mkdir(exist_ok=True)
+    channel.joinpath("messages").mkdir(exist_ok=True)
+    channel.joinpath("tmp").mkdir(exist_ok=True)
     channel.joinpath("directive.md").write_text(DIRECTIVE)
     script_copy = channel.joinpath(SCRIPT_NAME)
     shutil.copyfile(Path(__file__).resolve(), script_copy)
@@ -231,18 +246,20 @@ def cmd_send(args):
     body = resolve_body(args)
     if not body.strip():
         fail("empty message body")
+    messages_dir = channel.joinpath("messages")
+    messages_dir.mkdir(exist_ok=True)
     date_stamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     filename = f"{date_stamp}__{slug(sender)}__{slug(args.recipient)}__{slug(args.title)}.md"
-    path = channel.joinpath(filename)
+    path = messages_dir.joinpath(filename)
     if path.exists():
-        path = channel.joinpath(f"{path.stem}-{secrets.token_hex(2)}.md")
+        path = messages_dir.joinpath(f"{path.stem}-{secrets.token_hex(2)}.md")
     header = (
         f"from: {sender}\n"
         f"to: {args.recipient}\n"
         f"date: {datetime.now().isoformat(timespec='seconds')}\n"
         f"subject: {args.title}\n\n"
     )
-    atomic_write(path, header + body.rstrip("\n") + "\n")
+    atomic_write(path, header + body.rstrip("\n") + "\n", channel_tmp(channel))
     print(path)
 
 
@@ -264,7 +281,7 @@ def cmd_join(args):
     if args.note:
         content += f"\n{args.note.rstrip(chr(10))}\n"
     path = who_dir.joinpath(f"{slug(handle)}.md")
-    atomic_write(path, content)
+    atomic_write(path, content, channel_tmp(channel))
     emit(
         args.export,
         [str(path)],
@@ -287,10 +304,11 @@ def cmd_who(args):
 
 def cmd_ls(args):
     channel = resolve_channel(args)
-    messages = sorted(
-        path
-        for path in channel.glob("*.md")
-        if path.name != "directive.md"
+    messages_dir = channel.joinpath("messages")
+    messages = (
+        sorted(path for path in messages_dir.iterdir() if path.is_file())
+        if messages_dir.is_dir()
+        else []
     )
     if not messages:
         print("No messages.")

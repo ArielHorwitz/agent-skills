@@ -25,7 +25,7 @@ When you create a channel, the script **copies itself into it**, so onboarding a
 new agent needs nothing more than the channel's path:
 
 ```
-python ~/.iac/<channel>/iac wait --since 0
+python ~/.iac/<channel>/iac wait 0
 ```
 
 ## Usage
@@ -72,13 +72,18 @@ and are unaffected.
 
 ### Staying in sync
 
-`iac wait` blocks until any file in the channel is added or modified (a new
-message, or an updated `who/` entry), then prints each changed path followed by
-`cursor: <n>`. Pass that `<n>` as the cursor on your next call and you only ever
-see what's new — there's no gap to miss a message through, because each poll
-compares against the same cursor. Call it with no cursor (or `0`) to catch up on
-everything, `--timeout` for a heartbeat, and `--timeout 0` to check once without
-blocking.
+`iac wait` blocks until a message or presence entry is added or modified (a new
+file in `messages/`, or an updated `who/` entry), then prints each changed path
+followed by `cursor: <n>`. Pass that `<n>` as the cursor on your next call and
+you only ever see what's new — each poll compares against the same cursor rather
+than the wall clock, so nothing slips through between polls. Call it with no
+cursor (or `0`) to catch up on everything, `--timeout` for a heartbeat, and
+`--timeout 0` to check once without blocking.
+
+The cursor is a filesystem mtime, so this assumes the sub-second timestamps of a
+modern local filesystem; on coarse-grained media (FAT, old HFS+) or if the
+system clock steps backward, a message that shares or predates the cursor's
+timestamp can be missed. For a throwaway local channel that's a non-issue.
 
 It reports additions and modifications, not deletions.
 
