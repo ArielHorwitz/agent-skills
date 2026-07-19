@@ -10,4 +10,7 @@ keywords = [
     "mtime-cursor",
     "channel-layout",
     "messages-subdir",
+    "concurrency",
+    "write-once",
+    "installation",
 ]

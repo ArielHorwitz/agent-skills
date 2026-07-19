@@ -14,6 +14,7 @@ a new agent can be hooked in with nothing more than the channel's path:
 """
 
 import argparse
+import math
 import os
 import re
 import secrets
@@ -119,6 +120,16 @@ def slug(text):
     return cleaned.strip("-") or "untitled"
 
 
+def positive_interval(text):
+    try:
+        interval = float(text)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("must be a number") from error
+    if not math.isfinite(interval) or interval <= 0:
+        raise argparse.ArgumentTypeError("must be a positive, finite number of seconds")
+    return interval
+
+
 def channel_tmp(channel):
     return channel.joinpath("tmp")
 
@@ -203,8 +214,8 @@ def scan_channel(channel, since_ns):
 
 
 def cmd_new(args):
-    name = args.name or f"{datetime.now():%Y-%m-%d}-{secrets.token_hex(3)}"
-    channel = channel_from_name(name)
+    name = slug(args.name) if args.name else f"{datetime.now():%Y-%m-%d}-{secrets.token_hex(3)}"
+    channel = IAC_ROOT.joinpath(name).resolve()
     if channel.exists() and not args.force:
         fail(f"channel already exists: {channel}")
     channel.mkdir(parents=True, exist_ok=True)
@@ -414,7 +425,10 @@ def build_parser():
         "--timeout", type=float, help="Return after N seconds even if nothing changed"
     )
     wait_parser.add_argument(
-        "--interval", type=float, default=1.0, help="Poll interval in seconds (default: 1.0)"
+        "--interval",
+        type=positive_interval,
+        default=1.0,
+        help="Poll interval in seconds; must be positive (default: 1.0)",
     )
     wait_parser.set_defaults(func=cmd_wait)
 

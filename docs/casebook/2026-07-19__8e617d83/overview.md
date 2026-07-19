@@ -14,7 +14,7 @@ mostly as-is by deliberate choice. See
 [`review-findings-and-decisions.md`](./review-findings-and-decisions.md) for
 the full record, including the reasoning and the options we rejected.
 
-## Outcome
+## Earlier outcome
 
 Two commits on `master`:
 
@@ -26,7 +26,23 @@ Working tree clean; changes verified end-to-end (`new` → `join` → `send` →
 
 ## Status
 
-Open. Remaining/optional follow-ups noted in the decision record:
+Open. A follow-up audit on 2026-07-19 found two implementation issues, now
+addressed in the working tree:
+
+- `wait --interval` now rejects zero, negative, and non-finite values with an
+  argparse error instead of reaching `time.sleep()`.
+- `new` now normalizes its name and always creates beneath `IAC_ROOT`, so a
+  slash or `..` cannot escape the channel root. Channel selection by explicit
+  `--channel` path remains supported.
+
+The theoretical same-second message-name collision was discussed and accepted
+as implausible for this workflow; no change is planned. The non-executable
+top-level script remains an open packaging/onboarding decision rather than a
+code change.
+
+See [`follow-up-audit-2026-07-19.md`](./follow-up-audit-2026-07-19.md) for
+evidence and additional lower-priority observations. Remaining/optional
+follow-ups from the earlier review:
 
 - Directive-tone softening of two prescriptive passages (deferred, not yet done).
 - No migration path for pre-restructure channels (accepted, by design —
