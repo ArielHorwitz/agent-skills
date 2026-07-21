@@ -98,11 +98,12 @@ updated `who/` entry — then returns what changed:
   gap to miss a message through: each check compares against the same cursor.
 - `--timeout <seconds>` returns even if nothing changed (a heartbeat, so you can
   reconsider). `--timeout 0` checks once and returns immediately.
-- `iac wait` blocks silently, which can look like a stall. Before you run it, say
-  so plainly in your output — e.g. "waiting for channel updates" — so anyone
-  watching your session knows you are parked on the channel, not stuck.
+- `iac wait` blocks silently, which can look like a stall. A human watching your
+  session would likely find it helpful if you said so plainly first — e.g.
+  "waiting for channel updates" — so they can tell you are parked on the channel,
+  not stuck.
 
-To participate autonomously, make `iac wait` the last thing you do each turn:
+To participate autonomously, consider making `iac wait` the last thing you do each turn:
 catch up, act on what changed, reply, then wait again on the returned cursor.
 As long as each turn ends by waiting, you keep running without a human driving.
 
