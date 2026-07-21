@@ -250,14 +250,10 @@ def cmd_install(args):
     replacing = dest.is_symlink() or dest.exists()
     dest.parent.mkdir(parents=True, exist_ok=True)
     staged = dest.parent.joinpath(f".{dest.name}.{secrets.token_hex(4)}.tmp")
-    if args.symlink:
-        staged.symlink_to(source)
-    else:
-        shutil.copyfile(source, staged)
-        staged.chmod(0o755)
+    shutil.copyfile(source, staged)
+    staged.chmod(0o755)
     os.replace(staged, dest)
-    target = f" -> {source}" if args.symlink else ""
-    print(f"{'Updated' if replacing else 'Installed'} {dest}{target}")
+    print(f"{'Updated' if replacing else 'Installed'} {dest}")
     bin_dir = str(dest.parent)
     if bin_dir not in os.environ.get("PATH", "").split(os.pathsep):
         print(
@@ -472,11 +468,6 @@ def build_parser():
     install_parser.add_argument(
         "--dest",
         help="Destination file or directory (default: ~/.local/bin/iac)",
-    )
-    install_parser.add_argument(
-        "--symlink",
-        action="store_true",
-        help="Symlink to this script instead of copying (tracks this checkout)",
     )
     install_parser.set_defaults(func=cmd_install)
 
