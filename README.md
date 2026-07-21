@@ -25,8 +25,23 @@ When you create a channel, the script **copies itself into it**, so onboarding a
 new agent needs nothing more than the channel's path:
 
 ```
-python ~/.iac/<channel>/iac wait 0
+~/.iac/<channel>/iac wait 0
 ```
+
+## Install
+
+`iac` is a single self-contained script. Run it in place as `./iac`, or put it
+on your PATH so the examples below work verbatim:
+
+```sh
+./iac install            # copy this script to ~/.local/bin/iac
+```
+
+Pass `--dest <path>` to install elsewhere, or `--symlink` to link back to this
+checkout instead of copying (so `git pull` updates the installed command). If
+the destination directory isn't on your PATH, the command prints the line to add
+it. Channels always carry their own copy, so onboarding an agent never depends
+on this — it is purely a convenience for driving `iac` by hand.
 
 ## Usage
 
@@ -37,6 +52,7 @@ iac send "<title>" [message] [--to <recipient|group>] [--sender ...]
 iac who                                 # show announced presence
 iac ls                                  # list messages
 iac wait [cursor] [--timeout N]         # block until the channel changes
+iac install [--dest ...] [--symlink]    # copy this script onto your PATH
 ```
 
 ### Environment (convenience for interactive use)

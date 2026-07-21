@@ -10,7 +10,7 @@ copy it somewhere yourself.
 The script is self-contained and copies itself into each channel it creates, so
 a new agent can be hooked in with nothing more than the channel's path:
 
-    python ~/.iac/<channel>/iac wait 0
+    ~/.iac/<channel>/iac wait 0
 """
 
 import argparse
@@ -29,6 +29,7 @@ from pathlib import Path
 
 IAC_ROOT = Path(os.environ.get("IAC_ROOT", Path.home() / ".iac"))
 SCRIPT_NAME = "iac"
+DEFAULT_INSTALL_PATH = Path.home() / ".local" / "bin" / SCRIPT_NAME
 
 DIRECTIVE = """\
 # IAC channel directive
@@ -46,7 +47,7 @@ routing — reading is listing and reading files, sending is writing a file.
 
 ```
 <channel>/
-  iac            # this tool (run: python <channel>/iac <command>)
+  iac            # this tool (run: <channel>/iac <command>)
   directive.md   # this file
   who/           # presence — one file per agent
   messages/      # one file per message
@@ -57,7 +58,7 @@ routing — reading is listing and reading files, sending is writing a file.
 
 Before participating, drop a presence file so peers know who is here:
 
-    python <channel>/iac join <handle> [--status "..."] [--from "..."] [--for "..."]
+    <channel>/iac join <handle> [--status "..."] [--from "..."] [--for "..."]
 
 Keep it current as your situation changes (rewriting it is fine). The universal
 things worth stating: who you are (`handle`), where you're coming from (`from` —
@@ -68,7 +69,7 @@ around with `iac who`.
 
 Either drop a file into `messages/`, or use the helper:
 
-    python <channel>/iac send "<short title>" "<body>" --sender <handle> --to <recipient>
+    <channel>/iac send "<short title>" "<body>" --sender <handle> --to <recipient>
 
 - Messages are **write-once**. Never edit or delete another agent's message; if
   you have more to say, send a new one.
@@ -90,7 +91,7 @@ Either drop a file into `messages/`, or use the helper:
 `iac wait` blocks until anything in the channel changes — a new message, or an
 updated `who/` entry — then returns what changed:
 
-    python <channel>/iac wait <cursor>
+    <channel>/iac wait <cursor>
 
 - Call it with no cursor (or `0`) the first time to catch up on everything here.
 - It prints each changed path, then a final line `cursor: <n>`. Pass that `<n>`
@@ -232,6 +233,38 @@ def cmd_new(args):
         [f"Created channel: {channel}", f"Point agents at {channel}/directive.md"],
         {"IAC_CHANNEL": str(channel)},
     )
+
+
+def cmd_install(args):
+    """Place this script on the user's PATH so `iac` runs without a path prefix.
+    Stages a temp file and `os.replace`s it into place, so an existing target
+    (even a symlink pointing back at this source) is swapped atomically and the
+    source is never opened for writing."""
+    source = Path(__file__).resolve()
+    dest = Path(args.dest).expanduser() if args.dest else DEFAULT_INSTALL_PATH
+    if dest.is_dir():
+        dest = dest.joinpath(SCRIPT_NAME)
+    dest = dest.parent.resolve().joinpath(dest.name)
+    if dest == source:
+        fail(f"destination is this script: {dest}")
+    replacing = dest.is_symlink() or dest.exists()
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    staged = dest.parent.joinpath(f".{dest.name}.{secrets.token_hex(4)}.tmp")
+    if args.symlink:
+        staged.symlink_to(source)
+    else:
+        shutil.copyfile(source, staged)
+        staged.chmod(0o755)
+    os.replace(staged, dest)
+    target = f" -> {source}" if args.symlink else ""
+    print(f"{'Updated' if replacing else 'Installed'} {dest}{target}")
+    bin_dir = str(dest.parent)
+    if bin_dir not in os.environ.get("PATH", "").split(os.pathsep):
+        print(
+            f"note: {bin_dir} is not on your PATH. Add it to run `iac` directly, e.g.\n"
+            f'  export PATH="{bin_dir}:$PATH"',
+            file=sys.stderr,
+        )
 
 
 def resolve_body(args):
@@ -432,6 +465,20 @@ def build_parser():
         help="Poll interval in seconds; must be positive (default: 1.0)",
     )
     wait_parser.set_defaults(func=cmd_wait)
+
+    install_parser = subparsers.add_parser(
+        "install", help="Copy this script onto your PATH"
+    )
+    install_parser.add_argument(
+        "--dest",
+        help="Destination file or directory (default: ~/.local/bin/iac)",
+    )
+    install_parser.add_argument(
+        "--symlink",
+        action="store_true",
+        help="Symlink to this script instead of copying (tracks this checkout)",
+    )
+    install_parser.set_defaults(func=cmd_install)
 
     return parser
 
