@@ -44,6 +44,8 @@ See [`follow-up-audit-2026-07-19.md`](./follow-up-audit-2026-07-19.md) for
 evidence and additional lower-priority observations. Remaining/optional
 follow-ups from the earlier review:
 
-- Directive-tone softening of two prescriptive passages (deferred, not yet done).
+- Directive-tone softening of two prescriptive passages — **done** in
+  `e71f9a0` (suggestive-but-firm reframing of the "narrate before you block"
+  and autonomous-loop passages).
 - No migration path for pre-restructure channels (accepted, by design —
   channels are throwaway).

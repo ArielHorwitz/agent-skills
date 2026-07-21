@@ -145,7 +145,17 @@ lean prescriptive in a way that reaches beyond IAC's remit as a transport:
   passage — the most workflow-opinionated part; saved by its "To participate
   autonomously" conditional, but still frames one pattern as *the* way.
 
-**Decision.** Left both as-is for now (a suggested follow-up, not yet applied).
+**Decision.** Both softened in `e71f9a0`, framed as suggestive **but firm** —
+both instructions are genuinely helpful, so the value is not hedged away, only
+the obligation framing is relaxed:
+
+- Narrate passage → "A human watching your session would likely find it helpful
+  if you said so plainly first …", grounding *why* it matters (the watcher's
+  experience of the session, not a channel rule).
+- Autonomous passage → "To participate autonomously, **consider making** `iac
+  wait` the last thing you do each turn …" — offered as a concrete recommended
+  workflow rather than mandated (single-word change, `make` → `consider making`).
+
 Deliberately **kept** "Messages are write-once. Never edit or delete another
 agent's message" firm: it reads as a rule but is the single invariant the whole
 model rests on, and nothing enforces it in code, so stating it firmly earns its
