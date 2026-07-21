@@ -36,9 +36,22 @@ addressed in the working tree:
   `--channel` path remains supported.
 
 The theoretical same-second message-name collision was discussed and accepted
-as implausible for this workflow; no change is planned. The non-executable
-top-level script remains an open packaging/onboarding decision rather than a
-code change.
+as implausible for this workflow; no change is planned.
+
+The installation story is now resolved:
+
+- The source script is executable (`f19276c`); channel-local copies were
+  already `chmod 0o755` at copy time, so onboarding was never actually broken —
+  only running from a fresh clone was.
+- A self-install command `iac install` (`ee9d40b`) copies the script to
+  `~/.local/bin/iac` by default (`--dest` to override, `--symlink` to track the
+  checkout), chosen over hand-written `ln -s` instructions to match the tool's
+  self-copy ethos. It stages a temp file and `os.replace`s it in, so an existing
+  target — including a symlink back to the source — is swapped atomically without
+  truncating the source.
+- With both the installed command and every channel copy guaranteed executable,
+  the fragile `python`/`python3` prefix was dropped from the docstring,
+  directive, and README examples in favor of the shebang.
 
 See [`follow-up-audit-2026-07-19.md`](./follow-up-audit-2026-07-19.md) for
 evidence and additional lower-priority observations. Remaining/optional
