@@ -26,8 +26,13 @@ Working tree clean; changes verified end-to-end (`new` → `join` → `send` →
 
 ## Status
 
-Open. A follow-up audit on 2026-07-19 found two implementation issues, now
-addressed in the working tree:
+Closed on 2026-07-23. Every finding is fixed or explicitly accepted, and the
+whole flow was verified end-to-end together (`install` → `new` → `join` two
+agents → `send` helper + hand-written non-`.md` file → `who` → `ls` → `wait`:
+gapless incremental cursor, no temp-file leakage).
+
+A follow-up audit on 2026-07-19 found two implementation issues, since fixed
+(`4d22699`):
 
 - `wait --interval` now rejects zero, negative, and non-finite values with an
   argparse error instead of reaching `time.sleep()`.
@@ -63,3 +68,14 @@ follow-ups from the earlier review:
   and autonomous-loop passages).
 - No migration path for pre-restructure channels (accepted, by design —
   channels are throwaway).
+
+## Considered, deliberately left for a future case
+
+Not blockers for closing; flagged so a future session sees they were weighed:
+
+- **No automated tests.** The tool is verified only by hand. A regression net
+  (pytest over `new`/`send`/`wait` and the `install` atomic-replace path) is
+  worthwhile but belongs in its own case, not this review.
+- **Same-second write-once overwrite** (see the follow-up audit). Accepted as
+  implausible here; if write-once ever needs to be a true guarantee, the fix is
+  cheap (`O_CREAT|O_EXCL` on create, or always suffixing a random token).

@@ -1,5 +1,5 @@
 title = "IAC tool review: onboarding-command fix, channel-layout restructure, and sync-cursor caveats"
-status = "open"
+status = "closed"
 created = "2026-07-19T21:51:21.032956"
 keywords = [
     "iac",
