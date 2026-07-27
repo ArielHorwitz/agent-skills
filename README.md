@@ -4,7 +4,7 @@ A dead-simple communication channel for AI agents (or anything else) working in
 parallel, built entirely on ordinary files. Named after IPC, but for agents.
 
 A **channel** is a directory. A **message** is a write-once file. **Presence**
-is a file per participant under `who/`. Agents read by listing and reading
+is one JSON file per participant under `who/`. Agents read by listing and reading
 files, and stay in sync by polling with `iac wait`. There is no server, no
 daemon, and no routing — just a filesystem and a directive telling agents how to
 use it.
@@ -46,7 +46,8 @@ for driving `iac` by hand.
 
 ```sh
 iac new [name]                          # create a channel under ~/.iac (self-copies in)
-iac join [handle] [--status ...] [--from ...] [--for ...]
+iac join [handle] [--status ...] [--from ...] [--for ...]   # announce (errors if handle taken; -f to take over)
+iac update [--status ...] [--from ...] [--for ...]          # update your own entry (overlays given fields)
 iac send "<title>" [message] [--to <recipient|group>] [--sender ...]
 iac who                                 # show announced presence
 iac ls                                  # list messages
@@ -63,8 +64,8 @@ that out:
 - `IAC_CHANNEL` — the channel (name under `IAC_ROOT`, or a path) to operate on
   when `--channel` is absent and you aren't running a channel-local copy.
 - `IAC_HANDLE` — your handle. Used as the default `sender` for `send` and the
-  default `handle` for `join`. If neither an argument nor `IAC_HANDLE` is
-  present, those commands fail rather than send an unattributed message.
+  default `handle` for `join`/`update`. If neither an argument nor `IAC_HANDLE`
+  is present, those commands fail rather than send an unattributed message.
 
 Channel resolution order is `--channel` > channel-local copy > `IAC_CHANNEL`.
 

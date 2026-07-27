@@ -14,6 +14,7 @@ a new agent can be hooked in with nothing more than the channel's path:
 """
 
 import argparse
+import json
 import math
 import os
 import re
@@ -56,14 +57,25 @@ routing — reading is listing and reading files, sending is writing a file.
 
 ## Announce yourself
 
-Before participating, drop a presence file so peers know who is here:
+First see who else is around — handles are how peers tell each other apart, so
+check for a clash before you pick one:
+
+    <channel>/iac who
+
+Then drop a presence file so peers know you're here:
 
     <channel>/iac join <handle> [--status "..."] [--from "..."] [--for "..."]
 
-Keep it current as your situation changes (rewriting it is fine). The universal
-things worth stating: who you are (`handle`), where you're coming from (`from` —
-e.g. your project or role) and what you're here for (`for`). See who else is
-around with `iac who`.
+`join` refuses a handle that is already taken rather than clobbering another
+agent's entry; pick a distinct one, or pass `--force` to deliberately take it
+over. The universal things worth stating: who you are (`handle`), where you're
+coming from (`from` — e.g. your project or role) and what you're here for
+(`for`).
+
+Keep your entry current as things change with `iac update`, which overlays only
+the fields you pass and leaves the rest intact:
+
+    <channel>/iac update --status "..."
 
 ## Send a message
 
@@ -304,25 +316,42 @@ def cmd_send(args):
     print(path)
 
 
-def cmd_join(args):
-    channel = resolve_channel(args)
-    handle = args.handle or os.environ.get("IAC_HANDLE")
-    if not handle:
-        fail("no handle; pass one or set IAC_HANDLE")
-    who_dir = channel.joinpath("who")
-    who_dir.mkdir(exist_ok=True)
-    fields = {"handle": handle}
+def presence_path(channel, handle):
+    return channel.joinpath("who", f"{slug(handle)}.json")
+
+
+def presence_fields(args):
+    """Collect the presence fields given on the command line (handle aside)."""
+    fields = {}
     if args.status:
         fields["status"] = args.status
     if args.origin:
         fields["from"] = args.origin
     if args.purpose:
         fields["for"] = args.purpose
-    content = "".join(f"{key}: {value}\n" for key, value in fields.items())
     if args.note:
-        content += f"\n{args.note.rstrip(chr(10))}\n"
-    path = who_dir.joinpath(f"{slug(handle)}.md")
-    atomic_write(path, content, channel_tmp(channel))
+        fields["note"] = args.note
+    return fields
+
+
+def write_presence(channel, path, fields):
+    atomic_write(path, json.dumps(fields, indent=2) + "\n", channel_tmp(channel))
+
+
+def cmd_join(args):
+    channel = resolve_channel(args)
+    handle = args.handle or os.environ.get("IAC_HANDLE")
+    if not handle:
+        fail("no handle; pass one or set IAC_HANDLE")
+    channel.joinpath("who").mkdir(exist_ok=True)
+    path = presence_path(channel, handle)
+    if path.exists() and not args.force:
+        fail(
+            f"handle already taken: {handle}. Pick a distinct one, use "
+            "`iac update` to change your own entry, or pass --force to take it over."
+        )
+    fields = {"handle": handle, **presence_fields(args)}
+    write_presence(channel, path, fields)
     emit(
         args.export,
         [str(path)],
@@ -330,16 +359,34 @@ def cmd_join(args):
     )
 
 
+def cmd_update(args):
+    channel = resolve_channel(args)
+    handle = args.handle or os.environ.get("IAC_HANDLE")
+    if not handle:
+        fail("no handle; pass one or set IAC_HANDLE")
+    path = presence_path(channel, handle)
+    if not path.exists():
+        fail(f"no presence to update for {handle}; run `iac join` first")
+    updates = presence_fields(args)
+    if not updates:
+        fail("nothing to update; pass at least one of --status/--from/--for/--note")
+    fields = json.loads(path.read_text())
+    fields.update(updates)
+    write_presence(channel, path, fields)
+    print(path)
+
+
 def cmd_who(args):
     channel = resolve_channel(args)
     who_dir = channel.joinpath("who")
-    entries = sorted(who_dir.glob("*.md")) if who_dir.is_dir() else []
+    entries = sorted(who_dir.glob("*.json")) if who_dir.is_dir() else []
     if not entries:
         print("No one has announced presence yet.")
         return
     for entry in entries:
         print(f"--- {entry.stem} ---")
-        print(entry.read_text().rstrip("\n"))
+        for key, value in json.loads(entry.read_text()).items():
+            print(f"{key}: {value}")
         print()
 
 
@@ -422,17 +469,36 @@ def build_parser():
     send_parser.add_argument("--sender", help="Sender handle (default: $IAC_HANDLE)")
     send_parser.set_defaults(func=cmd_send)
 
-    join_parser = subparsers.add_parser("join", help="Announce or update presence")
+    def add_field_args(subparser):
+        subparser.add_argument("--status", help="Current status")
+        subparser.add_argument("--from", dest="origin", help="Where you're coming from")
+        subparser.add_argument("--for", dest="purpose", help="What you're here for")
+        subparser.add_argument("--note", help="Freeform note")
+
+    join_parser = subparsers.add_parser("join", help="Announce presence")
     add_channel_arg(join_parser)
     add_export_arg(join_parser)
     join_parser.add_argument(
         "handle", nargs="?", help="Your handle (default: $IAC_HANDLE)"
     )
-    join_parser.add_argument("--status", help="Current status")
-    join_parser.add_argument("--from", dest="origin", help="Where you're coming from")
-    join_parser.add_argument("--for", dest="purpose", help="What you're here for")
-    join_parser.add_argument("--note", help="Freeform note")
+    add_field_args(join_parser)
+    join_parser.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="Take over the handle if it is already present",
+    )
     join_parser.set_defaults(func=cmd_join)
+
+    update_parser = subparsers.add_parser(
+        "update", help="Update your own presence (overlays the fields you pass)"
+    )
+    add_channel_arg(update_parser)
+    update_parser.add_argument(
+        "handle", nargs="?", help="Your handle (default: $IAC_HANDLE)"
+    )
+    add_field_args(update_parser)
+    update_parser.set_defaults(func=cmd_update)
 
     who_parser = subparsers.add_parser("who", help="Show announced presence")
     add_channel_arg(who_parser)

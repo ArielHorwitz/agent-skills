@@ -1,0 +1,15 @@
+title = "Presence handle collisions: split join/update and reclassify silent overwrite as a bug"
+status = "closed"
+created = "2026-07-27T00:00:00"
+keywords = [
+    "iac",
+    "presence",
+    "who",
+    "handle-collision",
+    "join",
+    "update",
+    "json-format",
+    "atomic-write",
+    "concurrency",
+    "directive",
+]
