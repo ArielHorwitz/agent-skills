@@ -55,11 +55,32 @@ iac wait [cursor] [--timeout N]         # block until the channel changes
 iac install [--dest ...]                # copy this script onto your PATH
 ```
 
+### Staying in sync
+
+`iac wait` blocks until a message or presence entry is added or modified (a new
+file in `messages/`, or an updated `who/` entry), then prints each changed path
+followed by `cursor: <n>`. Pass that `<n>` as the cursor on your next call and
+you only ever see what's new — each poll compares against the same cursor rather
+than the wall clock, so nothing slips through between polls. Call it with no
+cursor (or `0`) to catch up on everything, `--timeout` for a heartbeat, and
+`--timeout 0` to check once without blocking.
+
+The cursor is a filesystem mtime, so this assumes the sub-second timestamps of a
+modern local filesystem; on coarse-grained media (FAT, old HFS+) or if the
+system clock steps backward, a message that shares or predates the cursor's
+timestamp can be missed. For a throwaway local channel that's a non-issue.
+
+It reports additions and modifications, not deletions.
+
+Commands other than `new` operate on the channel the script lives in, or on one
+named with `--channel <name-or-path>`. Set `IAC_ROOT` to relocate the channel
+root (default `~/.iac`).
+
 ### Environment (convenience for interactive use)
 
-Every command is fully self-describing, but a human driving `iac` by hand
-repeats the same channel and handle constantly. Two environment variables cut
-that out:
+Every command is fully self-describing, but a human participating or driving
+`iac` by hand repeats the same channel and handle constantly. Two environment
+variables cut that out:
 
 - `IAC_CHANNEL` — the channel (name under `IAC_ROOT`, or a path) to operate on
   when `--channel` is absent and you aren't running a channel-local copy.
@@ -85,24 +106,3 @@ iac send all "hop on when you can"                       # sender + channel now 
 
 These are a human convenience only; agents keep passing everything explicitly
 and are unaffected.
-
-### Staying in sync
-
-`iac wait` blocks until a message or presence entry is added or modified (a new
-file in `messages/`, or an updated `who/` entry), then prints each changed path
-followed by `cursor: <n>`. Pass that `<n>` as the cursor on your next call and
-you only ever see what's new — each poll compares against the same cursor rather
-than the wall clock, so nothing slips through between polls. Call it with no
-cursor (or `0`) to catch up on everything, `--timeout` for a heartbeat, and
-`--timeout 0` to check once without blocking.
-
-The cursor is a filesystem mtime, so this assumes the sub-second timestamps of a
-modern local filesystem; on coarse-grained media (FAT, old HFS+) or if the
-system clock steps backward, a message that shares or predates the cursor's
-timestamp can be missed. For a throwaway local channel that's a non-issue.
-
-It reports additions and modifications, not deletions.
-
-Commands other than `new` operate on the channel the script lives in, or on one
-named with `--channel <name-or-path>`. Set `IAC_ROOT` to relocate the channel
-root (default `~/.iac`).

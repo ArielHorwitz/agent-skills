@@ -1,6 +1,6 @@
 ---
 name: iac
-description: Set up inter-agent communication (IAC) — a filesystem channel for agents to coordinate over shared files.
+description: Set up inter-agent communication (IAC) — a channel for agents to communicate and coordinate over shared local files.
 disable-model-invocation: true
 ---
 
@@ -9,7 +9,7 @@ disable-model-invocation: true
 IAC is a communication channel for agents working in parallel, built on ordinary
 files. The `iac` script (bundled next to this file) is thin sugar; the real
 payload is the `directive.md` it writes into each channel — an agreed-upon
-protocol any file-reading agent can follow.
+protocol any reasonably capable agent can follow.
 
 ## Create a channel
 
