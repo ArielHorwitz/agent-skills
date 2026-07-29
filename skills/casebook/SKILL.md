@@ -4,6 +4,7 @@ description: >
   Work within or consult the project's casebook — a directory of cases, each a
   bounded unit of work (investigation, brainstorm, feature, design, etc.).
 argument-hint: "Which case(s) to work on or look into"
+compatibility: Requires Python 3.11+ (uses the stdlib tomllib).
 disable-model-invocation: true
 ---
 

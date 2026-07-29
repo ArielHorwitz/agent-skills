@@ -1,6 +1,7 @@
 ---
 name: iac
 description: Set up inter-agent communication (IAC) — a channel for agents to communicate and coordinate over shared local files.
+compatibility: Requires Python 3.
 disable-model-invocation: true
 ---
 

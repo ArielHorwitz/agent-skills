@@ -1,0 +1,4 @@
+title = "Restructure repo from single-skill (iac) into a public, shared multi-skill agent-skills collection"
+status = "closed"
+created = "2026-07-29T15:14:47.620130"
+keywords = ["repo-structure", "packaging", "readme", "installer", "public-release", "agent-skills"]
