@@ -35,6 +35,32 @@ Below, `casebook` is shorthand for that invocation.
 - `casebook init` — create `docs/casebook/` with a stub `agents.md` (run once
   per project)
 
+## Plain invocation (no arguments)
+
+When the `casebook` skill is invoked with no arguments, produce a succinct
+review of the casebook rather than opening any case — a status dashboard, not
+a deep-dive.
+
+- Run `casebook list` to get every case's `title`, `status`, `keywords`, and
+  `created` date. If there are no cases, say so and stop.
+- Classify each case as **relevant** (status other than `closed`-like, or among
+  the most recently created/closed) or **routine** (older, `closed`-like, no
+  open threads).
+- Set a total length budget for the whole review — think a handful of
+  sentences altogether, not a paragraph per case — and split it roughly 3:1
+  between relevant and routine cases. With only one or two cases, this budget
+  is moot — just give each its natural due.
+- For **relevant** cases: read `overview.md` and spend one to two sentences on
+  current state and any open thread.
+- For **routine** cases: use `case.toml` metadata only (title/keywords) — do
+  not open `overview.md` or other files. One short clause each, or fewer if
+  the budget is tight.
+- If the budget doesn't stretch to a clause per routine case, group them (e.g.
+  "plus 5 older closed cases on X/Y") rather than shrinking the relevant
+  cases' detail.
+- Close by pointing to `casebook list` for the full picture, and note that
+  naming any case gets a deeper look.
+
 ## Identifying cases
 
 The user may refer to a case explicitly (a full id or hex-prefix) or vaguely
