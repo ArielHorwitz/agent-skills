@@ -18,6 +18,15 @@ Skills install into a vendor-neutral `.agents/skills/` directory, following the
 Each skill's directory has its own `SKILL.md` (and, where useful, a `README.md`)
 with the full details.
 
+## Model invocation
+
+A skill can trigger on its own when its `description` matches what an agent
+is doing, or be restricted to only run when explicitly invoked, via
+`disable-model-invocation: true` in `SKILL.md`'s frontmatter. Each skill in
+this collection picks whichever default fits it; edit that line directly (add
+it to disable auto-triggering, remove it to allow) if you want different
+behavior — reinstalling/upgrading a skill will overwrite the change.
+
 ## Install
 
 Clone the repo and run the installer. It copies skills into `~/.agents/skills/`:

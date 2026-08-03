@@ -9,7 +9,6 @@ argument-hint: "The task to delegate"
 compatibility: >
   Requires the CLI tools you delegate to (e.g. claude, codex) to be
   installed, authenticated, and on PATH.
-disable-model-invocation: true
 ---
 
 # Delegate

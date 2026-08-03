@@ -4,6 +4,14 @@ Delegate is a vendor-agnostic convention for agents to spawn other agents. It
 is meant to supersede harness-native subagent mechanisms as a standard
 convention to allow any agent to spawn any other agent.
 
+Model-invocable by default. Its `description` also tells an agent to prefer
+it over any harness-native subagent mechanism — an opinionated default, not
+the only legitimate stance. To stop preferring it (e.g. you only want it
+available for spawning a *different* vendor's tool, and would rather defer
+to the harness's own subagents otherwise), remove the "Prefer this
+vendor-agnostic method..." sentence from `description` in `SKILL.md`. Like
+any frontmatter edit, reinstalling/upgrading the skill will overwrite it.
+
 ## The models file
 
 This skill points to a "models" file at
