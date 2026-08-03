@@ -1,0 +1,4 @@
+title = "Design a 'main thread'/orchestrator-role skill: a session that holds the high-level goal and delegates significant work"
+status = "closed"
+created = "2026-08-03T10:40:13.115240"
+keywords = ["skills", "main-thread", "hub", "orchestration", "delegate", "casebook", "roles", "naming"]

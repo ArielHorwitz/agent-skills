@@ -13,6 +13,7 @@ Skills install into a vendor-neutral `.agents/skills/` directory, following the
 | [`iac`](skills/iac/) | Inter-agent communication — a filesystem channel for agents working in parallel to coordinate over shared files. |
 | [`casebook`](skills/casebook/) | Work within a project's *casebook* — a directory of "cases", each a bounded unit of work (investigation, design, feature) with its own metadata and files. |
 | [`delegate`](skills/delegate/) | Spawn another agent — a different CLI tool, model, or a fresh headless session — to carry out a task, using a user-maintained doc of what's available and how to invoke it. |
+| [`lead`](skills/lead/) | Take the lead on a goal — hold the high-level objective and steer, delegating significant work to other agents instead of doing it in this session. |
 
 Each skill's directory has its own `SKILL.md` (and, where useful, a `README.md`)
 with the full details.
