@@ -1,0 +1,4 @@
+title = "Design and build the `delegate` skill: vendor-agnostic spawning/dispatch of CLI agents"
+status = "closed"
+created = "2026-08-03T08:37:11.597248"
+keywords = ["delegate", "skills", "orchestration", "main-thread", "iac", "casebook", "subagents", "spawning"]
