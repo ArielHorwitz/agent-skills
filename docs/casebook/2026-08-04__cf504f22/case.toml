@@ -1,0 +1,4 @@
+title = "Delegation permission posture rework: from a Layer-A bypass block to softened headless defaults and guidance over enumeration"
+status = "paused"
+created = "2026-08-04T09:31:23.020507"
+keywords = ["delegate", "permissions", "posture", "headless", "guidance-over-enumeration", "auto-mode", "classifier", "lead", "sandbox", "danger-full-access", "bypassPermissions"]

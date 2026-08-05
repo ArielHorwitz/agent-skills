@@ -1,43 +1,8 @@
-# Delegate — available agents
+# Delegate — models
 
-## Tools
-
-### claude
-
-Non-interactive invocation, prompt over stdin:
-
-    claude -p --model <model> --output-format json --permission-mode bypassPermissions
-
-`--permission-mode bypassPermissions` avoids a headless call blocking on an
-approval prompt no one is present to answer. Add `--effort
-<low|medium|high|xhigh|max>` (default `high`) to trade cost against depth
-without changing model.
-
-#### Identification
-
-Add `-n <name>` to name the session — shown in `/resume` and searchable in
-its transcript, so it can be found again later. The result JSON's
-`session_id` field also resumes it directly via `claude --resume <id>`.
-
-### codex
-
-Non-interactive invocation, prompt over stdin, result written to a file:
-
-    codex exec --model <model> -s danger-full-access -o <output-file>
-
-`-s` is codex's sandbox/approval policy (`read-only`, `workspace-write`,
-`danger-full-access`) — `danger-full-access` is used here so a headless call
-never blocks on an approval prompt no one is present to answer. Add `-c
-model_reasoning_effort=<level>` to trade cost against depth without changing
-model.
-
-Codex model IDs use dots, not dashes — e.g. `gpt-5.6-sol`, not
-`gpt-5-6-sol`.
-
-#### Identification
-
-Identified by the session id it prints at the start of a run (`session id:
-...`); resume it with `codex resume <id>`.
+Which models are available and how to pick one for a task. Tool *invocations*
+and their permission flags live in `tools.md`; the permission *doctrine* (posture
+and the bounds) lives in `SKILL.md`.
 
 ## Models
 
@@ -78,3 +43,5 @@ Ratings are coarse and relative, not benchmark scores.
   suspension) — don't assume a Fable 5 request always runs as requested.
 - Cost-to-task reflects actual usage, not sticker price — `claude-sonnet-5`
   is priced low but can cost more per finished task than Opus at high effort.
+
+*Table and notes last updated: August 2026.*
