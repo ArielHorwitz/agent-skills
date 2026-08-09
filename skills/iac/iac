@@ -10,7 +10,7 @@ copy it somewhere yourself.
 The script is self-contained and copies itself into each channel it creates, so
 a new agent can be hooked in with nothing more than the channel's path:
 
-    ~/.iac/<channel>/iac wait 0
+    <channel-dir>/iac wait 0
 """
 
 import argparse
@@ -28,7 +28,12 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-IAC_ROOT = Path(os.environ.get("IAC_ROOT", Path.home() / ".iac"))
+# Channels default to a per-user dir under the system temp dir (e.g. /tmp), not
+# the home dir. Temp is friendlier to sandboxed agents — codex's workspace-write
+# and similar sandboxes permit writing under /tmp and $TMPDIR but not the home
+# dir — at the cost of not surviving a reboot, which is fine since IAC channels
+# are throwaway anyway. Override with the IAC_ROOT env var.
+IAC_ROOT = Path(os.environ.get("IAC_ROOT", Path(tempfile.gettempdir()) / f"iac-{os.getuid()}"))
 SCRIPT_NAME = "iac"
 DEFAULT_INSTALL_PATH = Path.home() / ".local" / "bin" / SCRIPT_NAME
 

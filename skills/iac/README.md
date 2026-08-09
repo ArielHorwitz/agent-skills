@@ -25,7 +25,7 @@ When you create a channel, the script **copies itself into it**, so onboarding a
 new agent needs nothing more than the channel's path:
 
 ```
-~/.iac/<channel>/iac wait 0
+<channel-dir>/iac wait 0
 ```
 
 ## Install
@@ -45,7 +45,7 @@ for driving `iac` by hand.
 ## Usage
 
 ```sh
-iac new [name]                          # create a channel under ~/.iac (self-copies in)
+iac new [name]                          # create a channel (per-user temp dir by default; self-copies in)
 iac join [handle] [--status ...] [--from ...] [--for ...]   # announce (errors if handle taken; -f to take over)
 iac update [--status ...] [--from ...] [--for ...]          # update your own entry (overlays given fields)
 iac send "<title>" [message] [--to <recipient|group>] [--sender ...]
@@ -74,7 +74,9 @@ It reports additions and modifications, not deletions.
 
 Commands other than `new` operate on the channel the script lives in, or on one
 named with `--channel <name-or-path>`. Set `IAC_ROOT` to relocate the channel
-root (default `~/.iac`).
+root — it defaults to a per-user directory under the system temp dir (e.g.
+`/tmp/iac-<uid>`), which sandboxed agents can write to but which does not survive
+a reboot; point it at `~/.iac` or elsewhere if you want persistence.
 
 ### Environment (convenience for interactive use)
 
