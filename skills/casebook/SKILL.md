@@ -44,10 +44,13 @@ When the `casebook` skill is invoked with no arguments, produce a succinct
 review of the casebook rather than opening any case — a status dashboard, not
 a deep-dive.
 
-- Run `casebook list` to get every case's `title`, `status`, `keywords`, and
-  `created` date. This review is scoped to the **current working tree** (this
-  branch) — it does not survey other branches. If there are no cases, say so and
-  stop.
+- Run `casebook list --all-branches` (the full flag, for clarity) to survey
+  every case's `title`, `status`, and `keywords` across **all local branches**,
+  not just the current tree — a plain review is meant to cover the whole project,
+  wherever cases live. The output is grouped by branch and cases shared across
+  branches repeat; treat each case once. If the same case shows a different
+  `status` across branches, that divergence is itself an open thread worth a
+  mention. If there are no cases, say so and stop.
 - Classify each case as **relevant** (status other than `closed`-like, or among
   the most recently created/closed) or **routine** (older, `closed`-like, no
   open threads).
@@ -56,16 +59,17 @@ a deep-dive.
   between relevant and routine cases. With only one or two cases, this budget
   is moot — just give each its natural due.
 - For **relevant** cases: read `overview.md` and spend one to two sentences on
-  current state and any open thread.
+  current state and any open thread. A case living only on another branch has
+  its `overview.md` there, not on disk here — read it with
+  `git show <branch>:<path>`, or lean on the metadata if that is enough.
 - For **routine** cases: use `case.toml` metadata only (title/keywords) — do
   not open `overview.md` or other files. One short clause each, or fewer if
   the budget is tight.
 - If the budget doesn't stretch to a clause per routine case, group them (e.g.
   "plus 5 older closed cases on X/Y") rather than shrinking the relevant
   cases' detail.
-- Close by pointing to `casebook list` for the full picture of this branch
-  (and `casebook list -a` for cases on other branches), and note that naming
-  any case gets a deeper look.
+- Close by noting that naming any case gets a deeper look, and that plain
+  `casebook list` narrows the view to the current branch's working tree.
 
 ## Identifying cases
 
@@ -104,8 +108,8 @@ before acting. Then follow these conventions.
 The casebook lives in the repo, so a case is a **branch-local mutable
 document**. `casebook list` sees only the current working tree, so a case you
 cannot find may live on another branch rather than not exist —
-`casebook list -a` lists committed cases on every local branch (grouped by
-branch) to find it and to spot divergence. That cross-branch view reads
+`casebook list --all-branches` lists committed cases on every local branch
+(grouped by branch) to find it and to spot divergence. That cross-branch view reads
 **committed tips only**, so uncommitted work is invisible to it; commit a case,
 or a status change, to make it visible across branches.
 

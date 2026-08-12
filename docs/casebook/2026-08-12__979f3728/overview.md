@@ -36,8 +36,11 @@ Cross-branch discovery/divergence view, added to `casebook.py`. Design settled
 after discussion:
 
 - **Opt-in** via `-a` / `--all-branches`. Default `list` is unchanged (current
-  working tree, live filesystem). Keeps the common case terse and leaves the
-  bare-invocation review untouched.
+  working tree, live filesystem) so ad-hoc listing stays terse and local. The
+  split is deliberate: interactive `casebook list` is scoped to here, but the
+  **plain-invocation review is directed to use `--all-branches`** so the
+  dashboard covers the whole project wherever cases live. (The full flag name is
+  used in that instruction for clarity.)
 - **Branches only, committed tips.** Every local branch is read uniformly via
   `git ls-tree` / `git show` — including the current branch. Consequence
   (accepted for simplicity, and stated as a directive in the skill):
