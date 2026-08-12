@@ -93,6 +93,35 @@ before acting. Then follow these conventions.
 - **`overview.md`** is a living summary of the case — keep it updated as the case
   evolves so it stays useful to future sessions.
 
+## Version control
+
+The casebook lives in the repo, so a case is a **branch-local mutable
+document**. `casebook list` sees only the current working tree, so a case you
+cannot find may live on another branch rather than not exist.
+
+**A case usually lives in one branch** — created in a worktree, worked, closed
+there, then merged to the trunk in final form. Such a case has no divergence
+risk and merges as a pure addition. Close it (finish the work, update files, set
+`status = "closed"`), **commit the closing edit, then merge**, so the trunk
+receives an already-closed case; merging first lands it open until a later commit
+closes it.
+
+**VCS delivery is plumbing, not case work** — for the single-branch case,
+committing and merging carry the finished case but are not tasks within it, so
+don't list "merge back", "open a PR", and the like as open items (they define the
+case's completion to include an act that happens after it is done). Two
+exceptions, where commit/merge *is* case activity: a case whose **subject** is
+the commit/branch/merge/release, and a **multi-branch case**, which may commit
+and merge while still open — those are mid-lifecycle syncs, so merge back
+promptly to keep the trunk's copy fresh.
+
+**Staleness vs. divergence.** Advancing an open case on a branch leaves the
+trunk's copy stale — ordinary branching, fixed by merging back. The real hazard
+is **concurrent mutation**: two live branches advancing one case conflict in
+`overview.md` and `case.toml` (the shared single-points; per-topic files rarely
+collide). Keep a case's active work on **one branch at a time**; if parallel work
+is unavoidable, confine edits to disjoint per-topic files.
+
 ## Consulting past cases
 
 The casebook includes past cases that may provide historical context for design
