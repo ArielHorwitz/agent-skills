@@ -1,39 +1,28 @@
 # Agent skills
 
-A collection of [agent skills](https://agentskills.io) — portable,
-self-contained capabilities an AI coding agent can discover and use.
-
-Skills install into a vendor-neutral `.agents/skills/` directory, following the
-[.agents protocol](https://dotagentsprotocol.com/).
+A collection of vendor-agnostic [agent skills](https://agentskills.io) focused
+on coordination and orchestration. Skills install into a `.agents/skills/`
+directory, following the [.agents protocol](https://dotagentsprotocol.com/).
 
 ## Skills
 
 | Skill | What it does |
 | --- | --- |
-| [`iac`](skills/iac/) | Inter-agent communication — a filesystem channel for agents working in parallel to coordinate over shared files. |
 | [`casebook`](skills/casebook/) | Work within a project's *casebook* — a directory of "cases", each a bounded unit of work (investigation, design, feature) with its own metadata and files. |
+| [`iac`](skills/iac/) | Inter-agent communication — a filesystem channel for agents working in parallel to coordinate over shared files. |
 | [`delegate`](skills/delegate/) | Spawn another agent — a different CLI tool, model, or a fresh headless session — to carry out a task, using a user-maintained doc of what's available and how to invoke it. |
 | [`lead`](skills/lead/) | Take the lead on a goal — hold the high-level objective and steer, delegating significant work to other agents instead of doing it in this session. |
 
-Each skill's directory has its own `SKILL.md` (and, where useful, a `README.md`)
-with the full details.
-
-## Model invocation
-
-A skill can trigger on its own when its `description` matches what an agent
-is doing, or be restricted to only run when explicitly invoked, via
-`disable-model-invocation: true` in `SKILL.md`'s frontmatter. Each skill in
-this collection picks whichever default fits it; edit that line directly (add
-it to disable auto-triggering, remove it to allow) if you want different
-behavior — reinstalling/upgrading a skill will overwrite the change.
+Each skill is rooted at its `SKILL.md`; a companion `README.md` provides a
+human-facing explanation.
 
 ## Install
 
 Clone the repo and run the installer. It copies skills into `~/.agents/skills/`:
 
 ```sh
-git clone https://github.com/ArielHorwitz/iac
-cd iac
+git clone https://github.com/ArielHorwitz/agent-skills
+cd agent-skills
 ./install.sh              # all skills
 ./install.sh casebook     # just one
 ./install.sh --list       # see what's available
@@ -67,3 +56,12 @@ It symlinks `.claude/skills -> ../.agents/skills` (and `.claude/CLAUDE.md ->
 ../.agents/agents.md`), creating `.agents/` if needed. Anything that already
 exists — a symlink, or a real `CLAUDE.md` — is left untouched, so it's safe to
 re-run and won't disturb an existing setup.
+
+## Model invocation
+
+A skill can trigger on its own when its `description` matches what an agent
+is doing, or be restricted to only run when explicitly invoked, via
+`disable-model-invocation: true` in `SKILL.md`'s frontmatter. Each skill in
+this collection picks whichever default fits it; edit that line directly (add
+it to disable auto-triggering, remove it to allow) if you want different
+behavior — reinstalling/upgrading a skill will overwrite the change.
