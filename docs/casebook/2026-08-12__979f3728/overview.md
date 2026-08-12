@@ -67,4 +67,4 @@ is conceded); scanning worktrees (`git worktree list`) for uncommitted state.
 - [x] Skill updated for `-a`: CLI listing, Version control section, and the
       bare-invocation review (scope made explicit).
 
-The substantive work is complete; this case is ready to close.
+The substantive work is complete; this case is closed.
