@@ -3,8 +3,10 @@
 import argparse
 import datetime
 import secrets
+import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 import tomllib
 
@@ -72,7 +74,30 @@ def load_case_metadata(case_path: Path) -> dict:
     return tomllib.loads(case_path.joinpath("case.toml").read_text())
 
 
+def format_case_line(case_id: str, metadata: dict) -> str:
+    title = metadata.get("title", "(untitled)")
+    status = metadata.get("status", "unknown")
+    return f"  {case_id}  [{status}]  {title}"
+
+
+def case_matches(metadata: dict, args) -> bool:
+    status = metadata.get("status")
+    if args.status and status not in args.status:
+        return False
+    if args.not_status and status in args.not_status:
+        return False
+    case_keywords = metadata.get("keywords", [])
+    if args.keyword and not any(kw in case_keywords for kw in args.keyword):
+        return False
+    if args.not_keyword and any(kw in case_keywords for kw in args.not_keyword):
+        return False
+    return True
+
+
 def cmd_list(args):
+    if args.all_branches:
+        cmd_list_all_branches(args)
+        return
     casebook_path = find_casebook_root()
     cases = sorted(
         path
@@ -82,32 +107,110 @@ def cmd_list(args):
     if not cases:
         print("No cases found.")
         return
-    status_include = args.status
-    status_exclude = args.not_status
-    keyword_include = args.keyword
-    keyword_exclude = args.not_keyword
-    matched = []
-    for case_path in cases:
-        metadata = load_case_metadata(case_path)
-        status = metadata.get("status")
-        if status_include and status not in status_include:
-            continue
-        if status_exclude and status in status_exclude:
-            continue
-        case_keywords = metadata.get("keywords", [])
-        if keyword_include and not any(kw in case_keywords for kw in keyword_include):
-            continue
-        if keyword_exclude and any(kw in case_keywords for kw in keyword_exclude):
-            continue
-        matched.append((case_path, metadata))
+    matched = [
+        (case_path, load_case_metadata(case_path))
+        for case_path in cases
+    ]
+    matched = [pair for pair in matched if case_matches(pair[1], args)]
     if not matched:
         print("No cases match the filter.")
         return
     for case_path, metadata in matched:
-        case_id = case_path.name
-        title = metadata.get("title", "(untitled)")
-        status = metadata.get("status", "unknown")
-        print(f"  {case_id}  [{status}]  {title}")
+        print(format_case_line(case_path.name, metadata))
+
+
+def git_repo_root() -> Path:
+    result = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print("error: not inside a git repository", file=sys.stderr)
+        raise SystemExit(1)
+    return Path(result.stdout.strip())
+
+
+def git_local_branches(root: Path) -> list[str]:
+    result = subprocess.run(
+        ["git", "for-each-ref", "--format=%(refname:short)", "refs/heads"],
+        capture_output=True,
+        text=True,
+        cwd=root,
+    )
+    return result.stdout.split()
+
+
+def git_current_branch(root: Path) -> Optional[str]:
+    result = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        capture_output=True,
+        text=True,
+        cwd=root,
+    )
+    name = result.stdout.strip()
+    return None if name in ("", "HEAD") else name
+
+
+def git_cases_on_branch(branch: str, root: Path) -> list:
+    listing = subprocess.run(
+        ["git", "ls-tree", "-r", "--name-only", branch, "--", f"{CASEBOOK_DIR}/"],
+        capture_output=True,
+        text=True,
+        cwd=root,
+    )
+    cases = []
+    for path in listing.stdout.splitlines():
+        if not path.endswith("/case.toml"):
+            continue
+        case_id = path.split("/")[-2]
+        blob = subprocess.run(
+            ["git", "show", f"{branch}:{path}"],
+            capture_output=True,
+            text=True,
+            cwd=root,
+        )
+        if blob.returncode != 0:
+            continue
+        try:
+            metadata = tomllib.loads(blob.stdout)
+        except tomllib.TOMLDecodeError:
+            continue
+        cases.append((case_id, metadata))
+    cases.sort(key=lambda pair: pair[0])
+    return cases
+
+
+def cmd_list_all_branches(args):
+    root = git_repo_root()
+    branches = git_local_branches(root)
+    if not branches:
+        print("No local branches found.")
+        return
+    current = git_current_branch(root)
+    ordered = sorted(branches)
+    if current in ordered:
+        ordered.remove(current)
+        ordered.insert(0, current)
+    print(
+        "Cases on every local branch (committed tips; uncommitted work is not shown):"
+    )
+    any_shown = False
+    for branch in ordered:
+        shown = [
+            (case_id, metadata)
+            for case_id, metadata in git_cases_on_branch(branch, root)
+            if case_matches(metadata, args)
+        ]
+        if not shown:
+            continue
+        any_shown = True
+        label = f"{branch}  (current)" if branch == current else branch
+        print(f"\n{label}")
+        for case_id, metadata in shown:
+            print(format_case_line(case_id, metadata))
+    if not any_shown:
+        print("\nNo committed cases found on any branch.")
 
 
 def main():
@@ -124,6 +227,13 @@ def main():
     subparsers.add_parser("new", help="Create a new case")
 
     list_parser = subparsers.add_parser("list", help="List cases")
+    list_parser.add_argument(
+        "-a",
+        "--all-branches",
+        action="store_true",
+        dest="all_branches",
+        help="List committed cases on every local branch, grouped by branch",
+    )
     list_parser.add_argument(
         "-s",
         "--status",

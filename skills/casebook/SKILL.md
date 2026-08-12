@@ -29,8 +29,11 @@ python3 <this-skill-dir>/casebook.py <command> ...
 
 Below, `casebook` is shorthand for that invocation.
 
-- `casebook list` — browse cases (run `casebook list --help` for status/keyword
-  filtering options)
+- `casebook list` — browse cases in the current working tree (run
+  `casebook list --help` for status/keyword filtering options). Add `-a` /
+  `--all-branches` to instead list committed cases on every local branch,
+  grouped by branch — the cross-branch discovery/divergence view (see
+  [Version control](#version-control)).
 - `casebook new` — create a case
 - `casebook init` — create `docs/casebook/` with a stub `agents.md` (run once
   per project)
@@ -42,7 +45,9 @@ review of the casebook rather than opening any case — a status dashboard, not
 a deep-dive.
 
 - Run `casebook list` to get every case's `title`, `status`, `keywords`, and
-  `created` date. If there are no cases, say so and stop.
+  `created` date. This review is scoped to the **current working tree** (this
+  branch) — it does not survey other branches. If there are no cases, say so and
+  stop.
 - Classify each case as **relevant** (status other than `closed`-like, or among
   the most recently created/closed) or **routine** (older, `closed`-like, no
   open threads).
@@ -58,8 +63,9 @@ a deep-dive.
 - If the budget doesn't stretch to a clause per routine case, group them (e.g.
   "plus 5 older closed cases on X/Y") rather than shrinking the relevant
   cases' detail.
-- Close by pointing to `casebook list` for the full picture, and note that
-  naming any case gets a deeper look.
+- Close by pointing to `casebook list` for the full picture of this branch
+  (and `casebook list -a` for cases on other branches), and note that naming
+  any case gets a deeper look.
 
 ## Identifying cases
 
@@ -97,7 +103,11 @@ before acting. Then follow these conventions.
 
 The casebook lives in the repo, so a case is a **branch-local mutable
 document**. `casebook list` sees only the current working tree, so a case you
-cannot find may live on another branch rather than not exist.
+cannot find may live on another branch rather than not exist —
+`casebook list -a` lists committed cases on every local branch (grouped by
+branch) to find it and to spot divergence. That cross-branch view reads
+**committed tips only**, so uncommitted work is invisible to it; commit a case,
+or a status change, to make it visible across branches.
 
 **A case usually lives in one branch** — created in a worktree, worked, closed
 there, then merged to the trunk in final form. Such a case has no divergence

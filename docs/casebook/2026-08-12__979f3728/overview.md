@@ -30,11 +30,38 @@ therefore **branch-local**. This single fact drives every point below.
   concurrent mutation of one case on two live branches, which conflicts in
   `overview.md` and `case.toml`.
 
+## Git-aware `list` (`casebook list -a`)
+
+Cross-branch discovery/divergence view, added to `casebook.py`. Design settled
+after discussion:
+
+- **Opt-in** via `-a` / `--all-branches`. Default `list` is unchanged (current
+  working tree, live filesystem). Keeps the common case terse and leaves the
+  bare-invocation review untouched.
+- **Branches only, committed tips.** Every local branch is read uniformly via
+  `git ls-tree` / `git show` — including the current branch. Consequence
+  (accepted for simplicity, and stated as a directive in the skill):
+  **uncommitted work is invisible to `-a`**; commit to make casework visible
+  across branches.
+- **Per-branch grouping, no union.** Cases are listed under each branch with
+  that branch's own `case.toml`. Divergence (same id, differing status/title
+  across branches) is *shown*, never computed — no priority/merge algorithm.
+  Cost: cases shared across branches repeat once per branch.
+- **Remotes out of scope.** Local branches only.
+- **Metadata only.** `-a` reads `case.toml`, never `overview.md`. How the bare
+  `casebook` review folds in cross-branch awareness is left to agent judgment,
+  not spelled out as rules.
+
+Rejected alternatives: a case-grouped view with computed divergence flags (needs
+a which-metadata-wins rule); a hybrid that reads the current worktree live but
+others from committed tips (extra concept for little gain once uncommitted work
+is conceded); scanning worktrees (`git worktree list`) for uncommitted state.
+
 ## Status
 
-- [x] Framing + best practices written into the skill's new **Version control**
-      section (`skills/casebook/SKILL.md`).
-- [ ] **Git-aware `list` enhancement** — deferred until the framing lands. Idea:
-      let `list` discover cases living on other branches/worktrees (e.g. walking
-      refs + `git ls-tree`), since filesystem-only `list` is blind to them. Scope
-      and design still open.
+- [x] Framing + best practices in the skill's **Version control** section.
+- [x] `casebook list -a` implemented in `skills/casebook/casebook.py`.
+- [x] Skill updated for `-a`: CLI listing, Version control section, and the
+      bare-invocation review (scope made explicit).
+
+The substantive work is complete; this case is ready to close.
