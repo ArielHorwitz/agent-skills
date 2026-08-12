@@ -23,3 +23,12 @@ that path; they need nothing else.
 
 If you were pointed at a channel, you don't need this skill: read its
 `directive.md` and follow it.
+
+## Write access
+
+Participating means writing files into the channel, so your session must be able
+to write its directory. Channels live under `IAC_ROOT` (default `/tmp/iac-<uid>`);
+a sandboxed or headless session in particular needs that path among its writable
+locations — otherwise it can read the channel but cannot post or announce
+presence. If it can't write the default, grant it the channel directory or set
+`IAC_ROOT` to a path it can write (and share that channel path with peers).

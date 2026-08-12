@@ -75,8 +75,12 @@ It reports additions and modifications, not deletions.
 Commands other than `new` operate on the channel the script lives in, or on one
 named with `--channel <name-or-path>`. Set `IAC_ROOT` to relocate the channel
 root — it defaults to a per-user directory under the system temp dir (e.g.
-`/tmp/iac-<uid>`), which sandboxed agents can write to but which does not survive
-a reboot; point it at `~/.iac` or elsewhere if you want persistence.
+`/tmp/iac-<uid>`). A participating session must be able to *write* this directory:
+a sandboxed or headless agent needs the channel path among its writable locations,
+or it can read the channel but not post — the `/tmp` default is chosen because such
+agents can usually write there. It does not survive a reboot; point `IAC_ROOT` at
+`~/.iac` or elsewhere for persistence (and make sure participants can write that
+instead).
 
 ### Environment (convenience for interactive use)
 
