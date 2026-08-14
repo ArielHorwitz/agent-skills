@@ -12,6 +12,7 @@ directory, following the [.agents protocol](https://dotagentsprotocol.com/).
 | [`iac`](skills/iac/) | Inter-agent communication — a filesystem channel for agents working in parallel to coordinate over shared files. |
 | [`delegate`](skills/delegate/) | Spawn another agent — a different CLI tool, model, or a fresh headless session — to carry out a task, using a user-maintained doc of what's available and how to invoke it. |
 | [`lead`](skills/lead/) | Take the lead on a goal — hold the high-level objective and steer, delegating significant work to other agents instead of doing it in this session. |
+| [`report-skill-feedback`](skills/report-skill-feedback/) | Send a skill's author a feedback report on how their skill actually behaved in real use — for skills that ship a `skill-feedback-reporting.md` (reporting instructions) saying what they want. |
 
 Each skill is rooted at its `SKILL.md`; a companion `README.md` provides a
 human-facing explanation.

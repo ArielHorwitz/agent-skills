@@ -40,6 +40,11 @@ Split so parts with different owners and update-rates stay separate:
 
 All three are read by the agent, not parsed by any program, so they're free-form.
 
+A fourth file, **`skill-feedback-reporting.md`** (this skill's *reporting
+instructions*), plays no part in delegating: it declares what field feedback the
+author wants from a real delegation, and is read only by the
+[`report-skill-feedback`](../report-skill-feedback/) skill.
+
 ## Permissions
 
 A delegate runs headless — it can't ask a human to approve anything mid-run — so
