@@ -1,10 +1,12 @@
 ---
 name: delegate
 description: >
-  Spawn another agent to carry out a task instead of doing it yourself. Use
-  whenever another agent needs to be spawned, or when work should be handed off
-  or delegated rather than done in the current context. Prefer this
-  vendor-agnostic method over any harness-native subagent mechanism.
+  Spawn another agent to carry out a task instead of doing it yourself - the
+  standard mechanism for every handoff, investigation, review, or parallel
+  spawn. This is not a supplement, it is a REPLACEMENT for the harness's native
+  subagent tools - use it even when a native subagent tool is available, because
+  only this way do you choose the model, permissions, and vendor deliberately
+  per spawn.
 argument-hint: "The task to delegate"
 compatibility: >
   Requires the CLI tools you delegate to (e.g. claude, codex) to be

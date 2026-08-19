@@ -3,7 +3,7 @@
 Delegate is a vendor-agnostic convention for agents to spawn other agents. It is
 meant to supersede and replace harness-native subagent mechanisms as a standard
 convention — so it is model-invocable by default, and its `description` tells an
-agent to prefer it over the harness's own subagents.
+agent to use it in place of the harness's own subagents.
 
 There's a real trade-off. You control the model and permissions of each spawn,
 can spawn across vendors, and the call is explicit and resumable; against that,
@@ -12,9 +12,9 @@ each launch, and you take over the permission decision the harness would
 otherwise make for you.
 
 To stop preferring it — e.g. you only want it for spawning a *different* vendor's
-tool and would otherwise defer to the harness's own subagents — remove the
-"Prefer this vendor-agnostic method..." sentence from `description` in `SKILL.md`
-(reinstalling the skill overwrites the edit).
+tool and would otherwise defer to the harness's own subagents — soften the
+"REPLACEMENT for the harness's native subagent tools" wording in the
+`description` in `SKILL.md` (reinstalling the skill overwrites the edit).
 
 ## How an agent uses it
 
