@@ -77,6 +77,15 @@ The user may refer to a case explicitly (a full id or hex-prefix) or vaguely
 (e.g. "the hardening case"). You can use `casebook list` to discover which case
 or cases they mean, matching on id, title, and keywords.
 
+## Referring to cases
+
+In user-facing text (summaries, reviews, questions), refer to a case the way
+a colleague would — by a short descriptive handle, e.g. "the hardening case".
+Let context set the specificity: if several hardening-related cases are in
+play, "the reboot hardening case" disambiguates. Users almost certainly do
+*not* recognize cases by their date or hex ID, so the ID makes a poor primary
+reference. Append the hex in parentheses, e.g. "the hardening case (9f4f)".
+
 ## Working within a case
 
 When working on a case, first orient yourself: read `overview.md` (if present)
