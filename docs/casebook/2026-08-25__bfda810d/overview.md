@@ -112,17 +112,57 @@ Resolving the open questions above:
    both sides hold real content it aborts loudly and leaves the merge to a human;
    directories are never merged automatically.
 
+## Verified against vendor documentation
+
+Checked 2026-08-26; every adapter decision above survived, and the compatibility
+matrix is now grounded rather than assumed.
+
+**Question 4 — no nested-path fallback.** `project_doc_fallback_filenames` takes
+bare filenames checked in each walked directory, not relative paths: the
+documented example is `["TEAM_GUIDE.md", ".agents.md"]`, and Codex "checks each
+directory in this order: `AGENTS.override.md`, `AGENTS.md`, `TEAM_GUIDE.md`,
+`.agents.md`". A root-level symlink is the only documented route to
+`.agents/agents.md`. Note also that `AGENTS.override.md` takes precedence at
+every scope, so a user with one will not see the bridged file.
+
+**Question 5 — surfaces.** The CLI, desktop app, and IDE extension share
+`~/.codex/config.toml` and project `AGENTS.md` alike. Cloud is the exception:
+cloud tasks have no access to local files and read what is committed to the
+repository. The project bridge therefore reaches cloud only when *both* the
+`AGENTS.md` symlink and `.agents/agents.md` are committed.
+
+**Claude project instructions — both locations work.** Project instructions load
+from "`./CLAUDE.md` or `./.claude/CLAUDE.md`", so the adapter's existing link
+needs no second root-level link.
+
+**Codex project skills — discovered, and symlinks are followed.** Codex scans
+`.agents/skills` in every directory from the working directory up to the
+repository root, plus `$HOME/.agents/skills` (user) and `/etc/codex/skills`
+(admin), and "supports symlinked skill folders and follows the symlink target".
+Project-scope skill installation is useful, and `native` is the correct report at
+both scopes.
+
+**One bridge limitation, on Claude's side.** Cowork sessions on desktop skip a
+`~/.claude/CLAUDE.md` that is itself a symlink or hard link. The global
+instructions bridge is invisible to that surface; the skills link and every
+other Claude surface are unaffected.
+
 ## Still open
 
-- Question 4 (nested-path fallback) and question 5 (which Codex surfaces behave
-  this way) are unverified. The adapter assumes root-level symlinks are the only
-  documented route, which follows from project discovery matching *filenames*
-  rather than paths, but that has not been re-checked against live docs.
-- Does Claude read `<project>/.claude/CLAUDE.md`, or only `<project>/CLAUDE.md`?
-  The adapter preserves the previous `fix-claude.sh` behavior; if only the root
-  file is read, the Claude adapter needs a second link at project scope.
-- Does Codex discover `<project>/.agents/skills`, or only the global one? This
-  decides whether project-scope skill installation is useful at all.
 - Reporting the instruction-discovery gap upstream to Codex is still undecided.
-- Separately: `disable-model-invocation` appears not to be respected by Codex.
-  Unrelated to this case; deserves its own.
+  The gap is now precisely stateable: Codex reads `.agents/skills` but not
+  `.agents/agents.md`, and its fallback mechanism cannot express a nested path.
+
+## Follow-up: implicit invocation under Codex
+
+The observation that `disable-model-invocation` is not respected by Codex is not
+a bug — Codex does not implement that field. It reads a vendor file *inside* the
+skill, `<skill>/agents/openai.yaml`, whose `policy.allow_implicit_invocation:
+false` means "Codex won't implicitly invoke the skill based on user prompt;
+explicit `$skill` invocation still works" — the same intent, a different
+mechanism.
+
+Three skills here declare `disable-model-invocation: true` and so trigger
+implicitly under Codex today: `casebook`, `lead`, and `report-skill-feedback`.
+Closing that gap means shipping an `agents/openai.yaml` beside each SKILL.md,
+which is skill content rather than installer work; it belongs in its own case.

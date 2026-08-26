@@ -64,6 +64,13 @@ the `.agents/` directory you already have:
 | [Claude Code](https://claude.com/claude-code) | `.claude/skills` → `.agents/skills` | `.claude/CLAUDE.md` → `.agents/agents.md` |
 | [Codex](https://learn.chatgpt.com/docs/agent-configuration/agents-md) | reads `.agents/skills` directly | global: `~/.codex/AGENTS.md` → `.agents/agents.md`<br>project: `AGENTS.md` → `.agents/agents.md` |
 
+Two documented limits are worth knowing. Codex cloud tasks can't see local
+files, so a project bridge reaches them only if both `AGENTS.md` and
+`.agents/agents.md` are committed. And Claude's Cowork sessions on desktop skip
+a `~/.claude/CLAUDE.md` that is itself a symlink, so the global instructions
+bridge is invisible to that one surface — skills and every other Claude surface
+are unaffected.
+
 Every link is reported, including the ones already in place, so re-running is
 safe and never silent. Anything real sitting where a link belongs is left
 untouched and reported as a conflict; pass `--adopt` to move that content into
