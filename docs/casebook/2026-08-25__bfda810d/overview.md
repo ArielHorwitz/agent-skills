@@ -71,3 +71,58 @@ Codex lifecycle behavior have been examined.
 - Add focused verification for global and project instruction discovery.
 - Correct the installation and compatibility documentation.
 - Decide whether the remaining gap should also be reported upstream to Codex.
+
+## Decisions
+
+The framing shifted first: no vendor reads `.agents/` completely, and the gaps
+differ *by artifact type*, so "Claude is the odd one out" was wrong rather than
+merely incomplete. Codex reads skills from `.agents/skills` natively but not
+instructions; Claude reads neither. That is a compatibility matrix, and the
+README now prints it as one.
+
+The repository's identity did not change with it. It stays a skills collection
+that happens to ship an opinionated installer — adopting the protocol is what
+the installer *does*, not a precondition for using the skills. Anyone who wants
+neither the layout nor the symlinks can `cp -R skills/<name>` into whatever
+directory their tool reads, which needs no code and is now documented.
+
+Resolving the open questions above:
+
+1. **One installer, not a `fix-codex.sh`.** `install.sh` absorbed the scaffolding
+   that `fix-claude.sh` was doing on the side, and `fix-claude.sh` is deleted.
+   Vendors are selected with `--vendor claude,codex` (or `all`).
+2. **Adapters are vendor-keyed plugins.** Each `adapters/<name>.sh` declares an
+   `adapter_<name>` function; `install.sh` sources them all and dispatches by
+   name, so the link, adopt, and reporting helpers exist in exactly one file.
+   Convention-keying was considered and dropped: two vendors that both want
+   `<project>/AGENTS.md` are declaring the *same* link, so they agree by
+   construction and there is nothing to deduplicate.
+3. **One `--dir`, scope derived.** `--dir` names where `.agents/` goes (default
+   `~`); global when it is the home directory, project otherwise. This replaced
+   `--dest`, which pointed at the skills subdirectory and read as the wrong
+   level of the layout.
+4. **Conflicts are reported, never silently skipped.** Every link reports one of
+   `linked` / `up-to-date` / `native` / `adopted` / `CONFLICT`, and a run with
+   conflicts exits non-zero. `--check` renders the same report without touching
+   anything, which is both the dry run and the verification tool.
+5. **`--adopt` is opt-in and refuses to merge.** It moves real content out of a
+   vendor location into `.agents/` and links it back. Adoption runs *before*
+   skills are installed, so an existing `.claude/skills` moves into an empty
+   `.agents/skills` rather than colliding with freshly-installed content. When
+   both sides hold real content it aborts loudly and leaves the merge to a human;
+   directories are never merged automatically.
+
+## Still open
+
+- Question 4 (nested-path fallback) and question 5 (which Codex surfaces behave
+  this way) are unverified. The adapter assumes root-level symlinks are the only
+  documented route, which follows from project discovery matching *filenames*
+  rather than paths, but that has not been re-checked against live docs.
+- Does Claude read `<project>/.claude/CLAUDE.md`, or only `<project>/CLAUDE.md`?
+  The adapter preserves the previous `fix-claude.sh` behavior; if only the root
+  file is read, the Claude adapter needs a second link at project scope.
+- Does Codex discover `<project>/.agents/skills`, or only the global one? This
+  decides whether project-scope skill installation is useful at all.
+- Reporting the instruction-discovery gap upstream to Codex is still undecided.
+- Separately: `disable-model-invocation` appears not to be respected by Codex.
+  Unrelated to this case; deserves its own.

@@ -19,44 +19,56 @@ human-facing explanation.
 
 ## Install
 
-Clone the repo and run the installer. It copies skills into `~/.agents/skills/`:
+Clone the repo and run the installer:
 
 ```sh
 git clone https://github.com/ArielHorwitz/agent-skills
 cd agent-skills
-./install.sh              # all skills
+./install.sh              # all skills, into ~/.agents/skills/
 ./install.sh casebook     # just one
 ./install.sh --list       # see what's available
+./install.sh --check      # report what would happen, change nothing
 ```
 
-Use `--dest DIR` to install elsewhere (e.g. a project's `.agents/skills`).
-An already-installed skill is left alone unless you pass `--upgrade` (alias
+The installer is opinionated: it lays things out the way the
+[.agents protocol](https://dotagentsprotocol.com/) describes, creating
+`~/.agents/skills/` for skills and an `~/.agents/agents.md` stub for your
+instructions. Use `--dir DIR` to set up somewhere else — `--dir .` treats the
+current directory as a project rather than your home directory. An
+already-installed skill is left alone unless you pass `--upgrade` (alias
 `--force`), which removes the existing skill directory and reinstalls it fresh —
 so `git pull` then `./install.sh --upgrade` is the update path. Full flags:
 `install.sh --help`.
 
-> **Using Claude?** Claude doesn't read `.agents/` — see [Claude](#claude) for
-> the one extra step it needs.
-
-## Claude
-
-Most tools that read the [.agents protocol](https://dotagentsprotocol.com/) find
-skills in `.agents/skills/` directly. [Claude Code](https://claude.com/claude-code)
-is the odd one out: it only looks under `.claude/`, so it needs a symlink pointing
-`.claude/` at the `.agents/` you already installed into.
-
-`fix-claude.sh` sets that up. Run it once per directory you want Claude to see —
-your home directory for globally-installed skills, or a project:
+None of that is required to use the skills. If you'd rather not adopt the
+protocol, skip the installer and copy them wherever your tool already reads
+from:
 
 ```sh
-./fix-claude.sh ~    # bridge your home directory (global skills)
-./fix-claude.sh      # bridge the current project
+cp -R skills/casebook ~/.claude/skills/
 ```
 
-It symlinks `.claude/skills -> ../.agents/skills` (and `.claude/CLAUDE.md ->
-../.agents/agents.md`), creating `.agents/` if needed. Anything that already
-exists — a symlink, or a real `CLAUDE.md` — is left untouched, so it's safe to
-re-run and won't disturb an existing setup.
+## Vendor setup
+
+Tools disagree about where they look, and each one is missing something
+different. `--vendor` bridges the gaps, pointing the locations a tool expects at
+the `.agents/` directory you already have:
+
+```sh
+./install.sh --vendor claude          # bridge your home directory (global)
+./install.sh --dir . --vendor all     # bridge the current project, every vendor
+```
+
+| | Skills | Instructions |
+| --- | --- | --- |
+| [Claude Code](https://claude.com/claude-code) | `.claude/skills` → `.agents/skills` | `.claude/CLAUDE.md` → `.agents/agents.md` |
+| [Codex](https://learn.chatgpt.com/docs/agent-configuration/agents-md) | reads `.agents/skills` directly | global: `~/.codex/AGENTS.md` → `.agents/agents.md`<br>project: `AGENTS.md` → `.agents/agents.md` |
+
+Every link is reported, including the ones already in place, so re-running is
+safe and never silent. Anything real sitting where a link belongs is left
+untouched and reported as a conflict; pass `--adopt` to move that content into
+`.agents/` and link it afterwards. When both sides hold real content the
+installer aborts and leaves the merge to you.
 
 ## Model invocation
 
