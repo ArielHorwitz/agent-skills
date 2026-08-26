@@ -1,5 +1,7 @@
 # Agent skills
 
+![agent-skills banner](assets/banner.png)
+
 A collection of vendor-agnostic [agent skills](https://agentskills.io) focused
 on coordination and orchestration. Skills install into a `.agents/skills/`
 directory, following the [.agents protocol](https://dotagentsprotocol.com/).

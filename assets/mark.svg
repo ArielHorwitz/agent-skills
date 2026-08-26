@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">agent skills mark</title>
+  <desc id="desc">A bracketed stack of modular skill cards with a command cursor.</desc>
+  <rect width="512" height="512" rx="56" fill="#090b0a"/>
+
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M126 112h-22c-12 0-20 8-20 20v248c0 12 8 20 20 20h22"
+      stroke="#3a413d" stroke-width="22"/>
+
+    <path d="M220 106h50l17 17h111v242H220z"
+      stroke="#c18b2c" stroke-width="13" opacity=".82"/>
+    <path d="M197 129h50l17 17h111v242H197z"
+      stroke="#bad500" stroke-width="15" opacity=".9"/>
+    <path d="M173 154h50l17 17h111v242H173z"
+      fill="#151a17" stroke="#667565" stroke-width="8"/>
+
+    <path d="M209 246l91 49-91 49z" fill="#c7e300" stroke="#c7e300" stroke-width="4"/>
+    <circle cx="236" cy="295" r="13" fill="#1c211d" stroke="none"/>
+    <path d="M397 260l31 35-31 35" stroke="#c7e300" stroke-width="16"/>
+  </g>
+
+  <g fill="#657067" opacity=".72">
+    <circle cx="117" cy="250" r="3"/><circle cx="133" cy="250" r="3"/><circle cx="149" cy="250" r="3"/>
+    <circle cx="117" cy="266" r="3"/><circle cx="133" cy="266" r="3"/><circle cx="149" cy="266" r="3"/>
+    <circle cx="117" cy="282" r="3"/><circle cx="133" cy="282" r="3"/><circle cx="149" cy="282" r="3"/>
+  </g>
+</svg>

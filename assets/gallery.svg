@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">agent skills gallery image</title>
+  <desc id="desc">The agent skills mark on a dark technical field with a phosphor glow.</desc>
+  <defs>
+    <filter id="phosphor" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="58"/>
+    </filter>
+    <pattern id="dot-grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.5" fill="#566058"/>
+    </pattern>
+  </defs>
+
+  <rect width="1600" height="900" fill="#090b0a"/>
+  <ellipse cx="800" cy="452" rx="390" ry="295" fill="#b5ce00" opacity=".095" filter="url(#phosphor)"/>
+  <rect x="105" y="286" width="250" height="330" fill="url(#dot-grid)" opacity=".25"/>
+  <rect x="1245" y="286" width="250" height="330" fill="url(#dot-grid)" opacity=".25"/>
+
+  <g fill="none" stroke="#4a514d" stroke-width="2">
+    <path d="M86 154h510M676 154h838M86 746h838M1004 746h510"/>
+    <path d="M86 139v30M1514 139v30M86 731v30M1514 731v30"/>
+    <path d="M211 222h238M1151 222h238M211 678h238M1151 678h238" opacity=".58"/>
+  </g>
+  <rect x="625" y="146" width="16" height="16" fill="#c7e300"/>
+  <rect x="955" y="738" width="16" height="16" fill="#c18b2c"/>
+
+  <g transform="translate(400 60) scale(1.55)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M126 112h-22c-12 0-20 8-20 20v248c0 12 8 20 20 20h22"
+      stroke="#3a413d" stroke-width="22"/>
+    <path d="M220 106h50l17 17h111v242H220z"
+      stroke="#c18b2c" stroke-width="13" opacity=".82"/>
+    <path d="M197 129h50l17 17h111v242H197z"
+      stroke="#bad500" stroke-width="15" opacity=".9"/>
+    <path d="M173 154h50l17 17h111v242H173z"
+      fill="#151a17" stroke="#667565" stroke-width="8"/>
+    <path d="M209 246l91 49-91 49z" fill="#c7e300" stroke="#c7e300" stroke-width="4"/>
+    <circle cx="236" cy="295" r="13" fill="#1c211d" stroke="none"/>
+    <path d="M397 260l31 35-31 35" stroke="#c7e300" stroke-width="16"/>
+    <g fill="#657067" opacity=".72" stroke="none">
+      <circle cx="117" cy="250" r="3"/><circle cx="133" cy="250" r="3"/><circle cx="149" cy="250" r="3"/>
+      <circle cx="117" cy="266" r="3"/><circle cx="133" cy="266" r="3"/><circle cx="149" cy="266" r="3"/>
+      <circle cx="117" cy="282" r="3"/><circle cx="133" cy="282" r="3"/><circle cx="149" cy="282" r="3"/>
+    </g>
+  </g>
+
+  <g fill="none" stroke-width="4">
+    <path d="M34 66V34h32M1534 34h32v32" stroke="#c7e300"/>
+    <path d="M34 834v32h32M1566 834v32h-32" stroke="#c18b2c"/>
+  </g>
+</svg>

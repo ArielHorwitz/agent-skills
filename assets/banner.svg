@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 400" role="img" aria-labelledby="title desc">
+  <title id="title">agent skills</title>
+  <desc id="desc">Dark technical banner with the agent skills mark and wordmark.</desc>
+  <defs>
+    <filter id="phosphor" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="13"/>
+    </filter>
+    <pattern id="dot-grid" width="18" height="18" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.4" fill="#5b645e"/>
+    </pattern>
+  </defs>
+
+  <rect width="1280" height="400" fill="#080a09"/>
+  <ellipse cx="267" cy="204" rx="205" ry="165" fill="#9bb300" opacity=".08" filter="url(#phosphor)"/>
+  <rect x="1010" y="96" width="185" height="190" fill="url(#dot-grid)" opacity=".42"/>
+
+  <g stroke="#4b524e" stroke-width="2" fill="none">
+    <path d="M58 78h540M680 78h536M58 322h820M952 322h264"/>
+    <path d="M58 65v26M1216 65v26M58 309v26M1216 309v26"/>
+  </g>
+  <rect x="628" y="72" width="12" height="12" fill="#c7e300"/>
+  <rect x="908" y="316" width="12" height="12" fill="#c18b2c"/>
+
+  <g transform="translate(76 16) scale(.72)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M126 112h-22c-12 0-20 8-20 20v248c0 12 8 20 20 20h22" stroke="#3a413d" stroke-width="22"/>
+    <path d="M220 106h50l17 17h111v242H220z" stroke="#c18b2c" stroke-width="13" opacity=".82"/>
+    <path d="M197 129h50l17 17h111v242H197z" stroke="#bad500" stroke-width="15" opacity=".9"/>
+    <path d="M173 154h50l17 17h111v242H173z" fill="#151a17" stroke="#667565" stroke-width="8"/>
+    <path d="M209 246l91 49-91 49z" fill="#c7e300" stroke="#c7e300" stroke-width="4"/>
+    <circle cx="236" cy="295" r="13" fill="#1c211d" stroke="none"/>
+    <path d="M397 260l31 35-31 35" stroke="#c7e300" stroke-width="16"/>
+  </g>
+
+  <text x="445" y="240" fill="#ebe8dc" font-family="'Fira Code','Cascadia Mono','DejaVu Sans Mono',monospace" font-size="94" font-weight="500" letter-spacing="1">agent skills</text>
+
+  <g fill="none" stroke-width="4">
+    <path d="M28 48v-20h20M1232 28h20v20" stroke="#c7e300"/>
+    <path d="M28 352v20h20M1252 352v20h-20" stroke="#c18b2c"/>
+  </g>
+</svg>
