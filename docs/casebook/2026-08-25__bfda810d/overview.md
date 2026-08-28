@@ -166,3 +166,22 @@ Three skills here declare `disable-model-invocation: true` and so trigger
 implicitly under Codex today: `casebook`, `lead`, and `report-skill-feedback`.
 Closing that gap means shipping an `agents/openai.yaml` beside each SKILL.md,
 which is skill content rather than installer work; it belongs in its own case.
+
+## Status
+
+**Open — delivered, pending review.** The work sits on
+`case/codex-dotagents-instructions` and is not yet merged to `master`:
+
+- `719d2ab` opens the case
+- `7945a5d` folds `fix-claude.sh` into `install.sh` and adds `adapters/`
+- `f6c683d` grounds the matrix in vendor documentation
+
+Verified by hand against throwaway directories: fresh project install,
+idempotent re-run, conflict detection, `--adopt` for both a file and a
+directory, the abort when real content lives on both sides, unknown
+skill/vendor errors, and an end-to-end run under `dash`. Global scope was
+exercised as a dry run against a real home directory. There is no automated
+test; `--check` is the verification surface.
+
+Close this on merge. Two things outlast it: whether to report the instruction
+gap upstream to Codex, and the `agents/openai.yaml` follow-up above.
