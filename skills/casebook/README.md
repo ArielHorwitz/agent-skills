@@ -10,7 +10,11 @@ You work with cases by talking to your agent. The agent finds and maintains the
 case files; you generally do not need to read or manage them yourself.
 
 The examples below use `/casebook` to invoke the skill. Use your agent
-harness's equivalent if its invocation syntax differs.
+harness's equivalent if its invocation syntax differs. You do not always need
+to invoke it yourself: an agent that has the skill consults the casebook on
+its own when you mention a case or ask about the project's history, and it
+will suggest recording work in a case, new or existing, when that seems
+warranted. It will not write to the casebook without your go-ahead.
 
 ## When to open a case
 

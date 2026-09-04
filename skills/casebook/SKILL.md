@@ -1,11 +1,13 @@
 ---
 name: casebook
 description: >
-  Work within or consult the project's casebook — a directory of cases, each a
-  bounded unit of work (investigation, brainstorm, feature, design, etc.).
+  Consult or work within the project's casebook (docs/casebook/), its durable
+  memory of cases: bounded units of work such as investigations, designs, and
+  features. Use whenever a case or the casebook is mentioned, when asked about
+  project history or why something is the way it is, when resuming earlier
+  work, or when substantial work is taking shape. When in doubt, load it.
 argument-hint: "Which case(s) to work on or look into"
 compatibility: Requires Python 3.11+ (uses the stdlib tomllib).
-disable-model-invocation: true
 ---
 
 # Casebook
@@ -16,6 +18,11 @@ case is a subdirectory named `YYYY-MM-DD__hex/` holding a `case.toml` (metadata)
 and its files. `case.toml` is the tool's fixed schema — `title`, `status`,
 `keywords`, `created` — used for listing and discovery. Everything else in
 the directory is the case's actual content.
+
+This skill applies only where `docs/casebook/` exists. If the project has no
+casebook, say so in a sentence and carry on without it. Do not run
+`casebook init` or propose one unprompted: adopting a casebook is the user's
+decision.
 
 ## The CLI
 
@@ -40,9 +47,9 @@ Below, `casebook` is shorthand for that invocation.
 
 ## Plain invocation (no arguments)
 
-When the `casebook` skill is invoked with no arguments, produce a succinct
-review of the casebook rather than opening any case — a status dashboard, not
-a deep-dive.
+When the user invokes the `casebook` skill with no arguments, produce a
+succinct review of the casebook rather than opening any case — a status
+dashboard, not a deep-dive.
 
 - Run `casebook list --all-branches` (the full flag, for clarity) to survey
   every case's `title`, `status`, and `keywords` across **all local branches**,
@@ -86,23 +93,48 @@ play, "the reboot hardening case" disambiguates. Users almost certainly do
 *not* recognize cases by their date or hex ID, so the ID makes a poor primary
 reference. Append the hex in parentheses, e.g. "the hardening case (9f4f)".
 
+## When to work on a case
+
+Work on a case, whether updating an existing one or creating a new one, only
+when the user has authorized it. Reading a case is always free, but every write
+changes a durable, committed record that other sessions rely on.
+
+- **Updating an existing case** (`overview.md`, `case.toml`, or any other
+  file) is authorized when the user asked you to work within that case, a
+  handoff assigned you to it, or the user approved an update you proposed.
+- **Creating a case** is authorized only by an explicit request or approval
+  from the user. Never run `casebook new` on your own initiative.
+
+Absent authorization, suggest rather than act, and suggest proactively. When
+findings, decisions, or progress bear on an existing case, say so: "I think
+this begs an update to the hardening case's overview (9f4f). Want me to record
+it?" When the work in hand looks case-worthy, say so: "It sounds like this
+work should probably be recorded as a new case." Work is case-worthy when it
+will likely span sessions or several agents, or when its decisions, research
+findings, or process may be valuable later. Routine tasks that fit in one
+session and leave no decision worth explaining do not qualify. Make the
+suggestion once, at a natural breakpoint, and let the user decide. A declined
+suggestion is not repeated.
+
+Once the user authorizes work on a case, that authorization covers the case
+for the rest of the session: keep its files current as the work evolves
+without asking again for each edit.
+
 ## Working within a case
 
 When working on a case, first orient yourself: read `overview.md` (if present)
 and any other files relevant to the task to understand where the case stands
 before acting. Then follow these conventions.
 
-- Work within existing cases. New cases are normally created by the user via
-  `casebook new` — don't create cases unprompted.
 - **`case.toml` is the tool's interface, not the case's content.** Keep its
   fields current as the work evolves (edit the file directly), but record the
   actual analysis, decisions, and reports in separate files.
 - **`title`** is the primary way cases are discovered — make it capture the full
   scope so anyone can find the case by title alone. New cases default to
   "Unnamed case"; rename early and refine as the scope becomes clearer.
-- **`status`** is usually `open` or `closed`, though other values (e.g. `blocked`,
-  `paused`) are also acceptable. Keep **`keywords`** updated to help future
-  sessions find the case.
+- **`status`** is usually `open` or `closed`, though any other value (e.g.
+  `blocked`, `paused`) is also acceptable. Keep **`keywords`** updated to help
+  future sessions find the case.
 - The case's files (beyond `case.toml`) hold its content — analysis, reports,
   decisions, designs, transcripts, etc. Code belongs in the source tree, not the
   case directory.
@@ -148,6 +180,10 @@ is unavoidable, confine edits to disjoint per-topic files.
 ## Consulting past cases
 
 The casebook includes past cases that may provide historical context for design
-decisions, prior investigations, or previously considered approaches. Use
+decisions, prior investigations, or previously considered approaches. When
+asked why something is the way it is, or whether something was looked into
+before, check the casebook before answering from the code alone. Use
 `casebook list` to browse, then read a case's files for reference — you can
-consult a case without taking over its work.
+consult a case without taking over its work. Cite the case when it informs an
+answer. Cases are history, not truth: the code and the current project state
+take precedence over anything a case recorded, and a closed case may be stale.
