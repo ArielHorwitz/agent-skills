@@ -1,4 +1,4 @@
-# IAC — inter-agent communication
+# IAC: inter-agent communication
 
 A dead-simple communication channel for AI agents (or anything else) working in
 parallel, built entirely on ordinary files. Named after IPC, but for agents.
@@ -6,20 +6,20 @@ parallel, built entirely on ordinary files. Named after IPC, but for agents.
 A **channel** is a directory. A **message** is a write-once file. **Presence**
 is one JSON file per participant under `who/`. Agents read by listing and reading
 files, and stay in sync by polling with `iac wait`. There is no server, no
-daemon, and no routing — just a filesystem and a directive telling agents how to
+daemon, and no routing, just a filesystem and a directive telling agents how to
 use it.
 
 IAC is only a *transport*. It makes no promise of persistence and keeps no
-record of its own — treat channels as throwaway. If a conversation matters
+record of its own. Treat channels as throwaway. If a conversation matters
 beyond the moment, copy it somewhere durable yourself. Where and how you archive
 is your business, not IAC's.
 
 ## Design
 
-The single-file `iac` script is thin sugar; the real payload is
+The single-file `iac` script is thin sugar. The real payload is
 `directive.md`, which is written into every channel and tells any reasonably
 capable agent how to participate. This keeps IAC agnostic to model, harness, and
-tool — anything that can read files and run a command can join.
+tool. Anything that can read files and run a command can join.
 
 When you create a channel, the script **copies itself into it**, so onboarding a
 new agent needs nothing more than the channel's path:
@@ -39,7 +39,7 @@ on your PATH so the examples below work verbatim:
 
 Pass `--dest <path>` to install elsewhere. If the destination directory isn't on
 your PATH, the command prints the line to add it. Channels always carry their own
-copy, so onboarding an agent never depends on this — it is purely a convenience
+copy, so onboarding an agent never depends on this. It is purely a convenience
 for driving `iac` by hand.
 
 ## Usage
@@ -60,13 +60,13 @@ iac install [--dest ...]                # copy this script onto your PATH
 `iac wait` blocks until a message or presence entry is added or modified (a new
 file in `messages/`, or an updated `who/` entry), then prints each changed path
 followed by `cursor: <n>`. Pass that `<n>` as the cursor on your next call and
-you only ever see what's new — each poll compares against the same cursor rather
+you only ever see what's new. Each poll compares against the same cursor rather
 than the wall clock, so nothing slips through between polls. Call it with no
 cursor (or `0`) to catch up on everything, `--timeout` for a heartbeat, and
 `--timeout 0` to check once without blocking.
 
 The cursor is a filesystem mtime, so this assumes the sub-second timestamps of a
-modern local filesystem; on coarse-grained media (FAT, old HFS+) or if the
+modern local filesystem. On coarse-grained media (FAT, old HFS+) or if the
 system clock steps backward, a message that shares or predates the cursor's
 timestamp can be missed. For a throwaway local channel that's a non-issue.
 
@@ -74,11 +74,11 @@ It reports additions and modifications, not deletions.
 
 Commands other than `new` operate on the channel the script lives in, or on one
 named with `--channel <name-or-path>`. Set `IAC_ROOT` to relocate the channel
-root — it defaults to a per-user directory under the system temp dir (e.g.
+root. It defaults to a per-user directory under the system temp dir (e.g.
 `/tmp/iac-<uid>`). A participating session must be able to *write* this directory:
 a sandboxed or headless agent needs the channel path among its writable locations,
-or it can read the channel but not post — the `/tmp` default is chosen because such
-agents can usually write there. It does not survive a reboot; point `IAC_ROOT` at
+or it can read the channel but not post. The `/tmp` default is chosen because such
+agents can usually write there. It does not survive a reboot. Point `IAC_ROOT` at
 `~/.iac` or elsewhere for persistence (and make sure participants can write that
 instead).
 
@@ -88,9 +88,9 @@ Every command is fully self-describing, but a human participating or driving
 `iac` by hand repeats the same channel and handle constantly. Two environment
 variables cut that out:
 
-- `IAC_CHANNEL` — the channel (name under `IAC_ROOT`, or a path) to operate on
+- `IAC_CHANNEL`: the channel (name under `IAC_ROOT`, or a path) to operate on
   when `--channel` is absent and you aren't running a channel-local copy.
-- `IAC_HANDLE` — your handle. Used as the default `sender` for `send` and the
+- `IAC_HANDLE`: your handle. Used as the default `sender` for `send` and the
   default `handle` for `join`/`update`. If neither an argument nor `IAC_HANDLE`
   is present, those commands fail rather than send an unattributed message.
 
@@ -110,5 +110,5 @@ eval "$(iac join human-supervisor --channel standup --export)"
 iac send all "hop on when you can"                       # sender + channel now implicit
 ```
 
-These are a human convenience only; agents keep passing everything explicitly
+These are a human convenience only. Agents keep passing everything explicitly
 and are unaffected.
