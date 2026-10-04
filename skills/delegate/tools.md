@@ -15,12 +15,14 @@ than trusting a description.
     echo "follow <handoff>.md" | claude -p --model <model> --output-format json \
       --permission-mode acceptEdits --allowedTools "WebSearch WebFetch"
 
-Prompt on stdin (as above) or as a positional arg after `-p`. The working dir is
-wherever you run it (`cd` there first). `-n <name>` names the session. The result
-JSON's `session_id` resumes it via `--resume <id>`. `--output-format json` returns
-structured output, including the `permission_denials` that tell you what your
-posture blocked. `--effort <low|medium|high|xhigh|max>` (default `high`) trades
-cost against depth.
+Prompt on stdin (as above) or as a positional arg after `-p`. Prefer stdin:
+`--allowedTools` and `--add-dir` take several values and swallow a positional
+prompt placed after them. The working dir is wherever you run it (`cd` there
+first). `-n <name>` names the session. The result JSON's `session_id` resumes it
+via `--resume <id>`. `--output-format json` returns structured output, including
+the `permission_denials` that tell you what your posture blocked.
+`--effort <low|medium|high|xhigh|max>` trades cost against depth (the default
+varies by model).
 
 Compose the posture:
 
@@ -45,18 +47,22 @@ from it); add `--skip-git-repo-check` to run outside a git repo. The session id
 prints at the start. Resume it headless with `codex exec resume <id> "<prompt>"`
 (plain `codex resume` is the interactive TUI). `-o <file>` writes the final
 message. `-c model_reasoning_effort=<level>` trades cost against depth. Model IDs
-use dots (`gpt-5.6-sol`, not `gpt-5-6-sol`).
+use dots (`gpt-6.1-sol`, not `gpt-6-1-sol`).
 
 Compose the posture:
 
 - **`-s`/`--sandbox`** sets the baseline: `workspace-write` to edit the working dir
-  (in the default), `read-only` to keep it from writing, `danger-full-access` for
+  (in the default; temp dirs are writable too, and the sandbox header lists every
+  writable root), `read-only` to keep it from writing, `danger-full-access` for
   unrestricted (needs an unrestricted delegator, see `SKILL.md`). Pass it
-  explicitly rather than relying on the default, which depends on the directory.
-- **`--search`** (top-level, before `exec`) enables web research via the native
-  `web_search` tool (in the default).
+  explicitly rather than relying on the default, which depends on the directory
+  and on whether codex has marked it trusted in your config (running there can
+  do that).
+- **`--search`** (top-level, before `exec`) enables live web research via the
+  native `web_search` tool (in the default). Recent versions may search without
+  it, so leaving it out doesn't keep a delegate off the web.
 - **`--add-dir <path>`** makes a specific directory writable alongside the
   workspace.
 
-*Orientation observed with claude 2.1.258, codex 0.153.4. Confirm current behavior
+*Orientation observed with claude 2.1.286, codex 0.159.3. Confirm current behavior
 via `--help` and what a run reports.*
