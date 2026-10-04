@@ -1,0 +1,5 @@
+# Codex reads this sidecar. It mirrors `disable-model-invocation: true` in
+# SKILL.md, which Codex ignores: the skill is only used when invoked
+# explicitly, never picked up by the model on its own.
+policy:
+  allow_implicit_invocation: false
