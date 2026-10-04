@@ -1,0 +1,4 @@
+title = "Vendor compatibility with the .agents protocol: instruction discovery, skill discovery, skill metadata, and adapters (Claude and Codex)"
+status = "closed"
+created = "2026-08-25T23:05:08.286112"
+keywords = ["vendor-compatibility", "codex", "claude", "dotagents", "AGENTS.md", "instruction-discovery", "skill-discovery", "skill-metadata", "compatibility", "adapters"]
