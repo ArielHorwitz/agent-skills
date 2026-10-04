@@ -1,0 +1,5 @@
+1. **P2: Qualify comparisons.** The [synthesis rule](/mnt/black/prog/agent-skills/.worktrees/refresh-delegate-catalog/.agents/skills/refresh-delegate-catalog/synthesis-brief.md:31) prefers plain comparisons, but “faster” can still reverse with effort or workload, as verification showed. Require comparisons to preserve workload, effort, and measurement scope.
+
+2. **P2: Resolve contradictory probe instructions.** The [spawning rule](/mnt/black/prog/agent-skills/.worktrees/refresh-delegate-catalog/.agents/skills/refresh-delegate-catalog/SKILL.md:94) requires every Codex spawn outside Git, while phase 6 permits Git probes. A fresh lead could skip trust-dependent behavior. Explicitly exempt tool probes.
+
+3. **P3: Cut historical pricing.** The [$20 spawn anecdote](/mnt/black/prog/agent-skills/.worktrees/refresh-delegate-catalog/.agents/skills/refresh-delegate-catalog/SKILL.md:107) could anchor future budgets to obsolete pricing. Keep the duration and usage-limit warning.
