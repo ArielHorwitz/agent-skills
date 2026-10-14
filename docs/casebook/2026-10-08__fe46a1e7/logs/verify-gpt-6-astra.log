@@ -1,0 +1,837 @@
+Reading prompt from stdin...
+OpenAI Codex v0.159.3
+--------
+workdir: /tmp/verify.XkpL/gpt-6-astra
+model: gpt-6-astra
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: high
+reasoning summaries: none
+session id: 01a11b29-298e-7f30-a0da-e61b72326111
+--------
+user
+Follow ./brief.md.
+
+codex
+I’ll read the brief and project instructions, then carry out the work in a dedicated worktree if changes are needed.
+
+exec
+/usr/bin/bash -lc "pwd && rg --files -g 'brief.md' -g 'AGENTS.md' -g '"'!node_modules'"' -g '"'!.git'"' && git status --short" in /tmp/verify.XkpL/gpt-6-astra
+ exited 128 in 0ms:
+/tmp/verify.XkpL/gpt-6-astra
+brief.md
+fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+
+exec
+/usr/bin/bash -lc 'cat /tmp/verify.XkpL/gpt-6-astra/brief.md' in /tmp/verify.XkpL/gpt-6-astra
+ succeeded in 0ms:
+# Handoff: verify the claims in a draft model reference
+
+You are one of several independent verifiers checking the same draft in
+parallel, each a different model. Don't coordinate with the others.
+
+## Context
+
+A repo has a skill (`delegate`) that lets an agent spawn another agent through a
+CLI. Its reference file on which models to pick has been redrafted from several
+research reports. Every delegate spawn will read it as settled fact, so each
+claim in it has to hold. Today is 2026-10-08.
+
+The draft: `./models-draft.md`
+
+## Your task
+
+Check every factual claim in the draft against live sources, using web search. If
+web search doesn't work for you, say so at the top of your report and stop. (If
+search works but fetching some pages fails, carry on and say so.)
+
+1. List every checkable claim: model IDs (current, not retired or renamed),
+   pricing and cost comparisons, effort-level notes, positioning
+   ("previous-gen", "flagship"), and anything else stated as fact. Verify facts
+   only. For advice (e.g. "avoid the top effort level unattended"), check only
+   that the reason it gives holds. Skip references to files in the repo itself.
+2. For each, give a verdict:
+   - **HOLDS**: a source supports it.
+   - **FAILS**: a source contradicts it. Give the correction.
+   - **UNSUPPORTED**: you found nothing either way.
+   - **STALE**: true once, no longer.
+3. Cite the source for each verdict (URL, publication date, independent or
+   vendor). Prefer independent sources, and say when only the vendor's word
+   supports a claim, or when several verdicts rest on one source.
+
+The ratings are judgments, not facts. Don't verdict them, but flag any rating
+that your evidence makes look clearly wrong, and why.
+
+Also flag anything in the draft that describes how it was researched (source
+names, "this used to say X", mentions of a study by name), and any note on
+honesty, evaluation gaming, outages, or silent substitution. The shipped file
+should carry none of that.
+
+## Scope
+
+The rest of this file was verified on 2026-10-04. Check only the claims in
+these parts of the draft, which are new or changed since then:
+
+- the `claude-haiku-5-5` row
+- the `claude-sonnet-5-5` row's cost comparison with Opus 5.5 at `max`
+- in Notes: the starting-choices bullet's cheap-work pick, the effort
+  defaults bullet, the cost-to-task bullet, the sticker-prices bullet, the
+  long-inputs bullet, and the "Not listed" bullet's claim that Haiku 4.5 is
+  superseded
+
+## Rules
+
+- State your own model ID at the top of your report.
+- You are headless: nobody will answer questions. Do what you can and state
+  plainly what you couldn't.
+- Do the work yourself. Don't spawn subagents or background agents.
+- Don't edit the draft. Write your report to `/tmp/verify.XkpL/gpt-6-astra/verification.md`, don't modify
+  or create anything else, and don't commit.
+- Start the report with a table of claim, verdict, and source, then details for
+  anything not HOLDS. No em-dashes.
+
+web search: 
+exec
+/usr/bin/bash -lc 'cat /tmp/verify.XkpL/gpt-6-astra/models-draft.md' in /tmp/verify.XkpL/gpt-6-astra
+ succeeded in 0ms:
+# Delegate: models
+
+Which models are available and how to pick one for a task. Tool *invocations*
+and their permission flags live in `tools.md`. The permission *doctrine*
+(posture and the bounds) lives in `SKILL.md`.
+
+## Models
+
+Three axes rather than one blended score, because these models trade places
+depending on task shape and a single number would hide that:
+
+- **Depth**: can it crack a hard, ambiguous, or novel problem?
+- **Execution**: can it drive a long agentic/terminal loop through
+  well-specified work efficiently?
+- **Cost-to-task**: realistic cost to get a representative task *done*,
+  not price per token.
+
+Ratings are coarse and relative, not benchmark scores. Cost-to-task runs
+lowest, low, medium, medium-high, high, highest. They assume the effort
+level named in the row's notes: effort moves cost-to-task roughly 4x to 18x
+within a single model, so a row rated at `high` is a different proposition at
+`max`.
+
+| tool | model | depth | execution | cost-to-task | notes |
+| --- | --- | --- | --- | --- | --- |
+| claude | claude-opus-5-5 | 5 | 5 | high | default for hard or ambiguous work, among the strongest on software and agentic knowledge work. Starts at `medium`; `high` is a good default, `xhigh` when a first pass falls short. `max` roughly doubles the cost of `xhigh` for little measurable gain, runs long, and can spend the whole output window thinking and return nothing |
+| claude | claude-sonnet-5-5 | 4 | 5 | medium-high, see notes | close to Opus at `max` but a step behind at lower effort, and among the strongest on terminal-heavy loops. Cheaper than Opus 5.5 below `max`, about the same or more at `max`, so it isn't the budget Claude either. `medium`/`high` for routine work, `xhigh` for hard loops; avoid `max` unattended |
+| claude | claude-fable-5-1 | 4 | 4 | highest | positioned as the escalation above Opus 5.5 for demanding reasoning and long-horizon work, but doesn't beat Opus 5.5 overall (it leads only in some problem classes) and costs more per task. Reserve for when Opus 5.5 at `xhigh` falls short |
+| claude | claude-haiku-5-5 | 2 | 2 | lowest, see notes | the cheap Claude: extraction, classification, summaries, triage, small well-specified edits. About level with GPT-6 Luna overall, ahead on terminal tasks at `high` and above but behind on tool-driven workflows, and often dearer per task because it writes more tokens. `medium` for routine work, `high` for longer tool sequences; beyond that its token use climbs steeply, so step up to 6.1 Sol or Sonnet 5.5 instead. Prompts over 100K tokens cost 5x per token, and a long session's growing transcript can cross that. Newly released, so this placement rests on thin early evidence |
+| codex | gpt-6-astra | 5 | 4 | medium-high | OpenAI's flagship, top on figure-out-the-mechanism problems and strong on novel math. Frugal with tokens, so cost-to-task is moderate despite the top sticker price. `medium` is already strong, `high` for hard debugging |
+| codex | gpt-6.1-sol | 4 | 5 | low | excellent cost-to-quality: near-Astra depth and top-tier agentic coding at several times less per task than the frontier models. Default executor for well-specified work and parallel fan-out. `xhigh` for coding (matches or beats its own `max` at about half the cost), `medium` for simple work |
+| codex | gpt-6-luna | 2 | 2 | lowest | dramatically cheap: classify, extract, transform, summarise, small verifiable code edits. Weak on terminal tasks, so keep it to bounded, checkable work. `medium` or higher for anything agentic |
+
+## Notes
+
+- Starting choices, not universal winners: `gpt-6.1-sol` for ordinary
+  implementation, `claude-opus-5-5` for demanding engineering, `gpt-6-astra`
+  for novel mathematical or mechanism-finding problems, `claude-sonnet-5-5` as
+  a strong alternative for scoped execution, `gpt-6-luna` or
+  `claude-haiku-5-5` for cheap, bounded, checkable work.
+- Effort (`--effort` / `model_reasoning_effort`) is a lever comparable to model
+  choice, and `max` is seldom worth it. Try raising effort before switching to
+  a stronger model, and lowering it before switching to a cheaper one. Opus
+  5.5, Sonnet 5.5 and Haiku 5.5 start at `medium` in Claude Code, Fable 5.1 at
+  `high`.
+- Cost-to-task reflects tokens actually spent, not sticker price. At `max` Opus 5.5
+  and Sonnet 5.5 emit roughly four to ten times Astra's output tokens, so
+  Astra at $10/$50 costs less per task than Opus 5.5 at $4/$20 or Sonnet 5.5
+  at $2/$10. Likewise Haiku 5.5 at `max` costs more per task than 6.1 Sol at
+  `low` for about the same quality.
+- Sticker prices per million input/output tokens, for reference: Fable 5.1 and
+  Astra $10/$50, Opus 5.5 $4/$20, Sonnet 5.5 and 6.1 Sol $2/$10, Haiku 5.5 and
+  6 Luna $0.10/$0.50 (Haiku 5.5 rises to $0.50/$2.50 for prompts over 100K
+  tokens). Sonnet 5.5 cache reads cost $0.10, which helps loops that reuse a
+  large prefix.
+- Long inputs: the codex models bill the whole request at 2x input and 1.5x
+  output once input passes 272K tokens. The Claude models bill flat across
+  their 1M window, except Haiku 5.5, which bills the whole request at 5x once
+  the prompt passes 100K tokens. So very large contexts favor the larger
+  Claude models on cost, and Luna over Haiku 5.5.
+- Not listed: the still-callable previous generation (Opus 5, Opus 4.8,
+  Fable 5, Sonnet 5, Haiku 4.5, GPT-6 Sol, GPT-5.6 Sol/Terra/Luna). Each is
+  superseded by a listed model from the same vendor that is better, cheaper,
+  or both.
+
+*Table and notes last updated: 2026-10-08.*
+
+exec
+/usr/bin/bash -lc 'cat /home/wiw/.codex/skills/.system/openai-docs/SKILL.md' in /tmp/verify.XkpL/gpt-6-astra
+ succeeded in 0ms:
+---
+name: "openai-docs"
+description: "Use for Codex models/pricing, scheduled tasks, skills, settings, setup, troubleshooting, customization, automations, and self-knowledge—including 'you,' 'your,' 'this app,' or 'this coding agent' when they refer to Codex—and for OpenAI APIs/products and ChatGPT Work. Also use for model choice/migration, prompting, SDKs, Responses, Realtime, agents, evals, and Chat/Work/Codex comparisons. Do not use for generic app/software tasks that merely mention Codex."
+metadata:
+  short-description: "Codex models/pricing, scheduled tasks, skills, settings, setup, troubleshooting, and self-knowledge; OpenAI APIs and ChatGPT Work. 'You'/'this app' means Codex only."
+---
+
+# OpenAI Docs
+
+Provide current, cited OpenAI product, API, model, and Codex guidance. Read zero or one primary reference.
+
+**First substantive action:** Search the user's exact requested official OpenAI documentation topic and any explicitly named model using a concise, topic-specific query of 2-6 essential terms. When an already-available direct official documentation search and page-retrieval capability is present, use it first: search, then fetch or open the matching official page before general web search. Otherwise, immediately use official-domain web search, then actually open or fetch the relevant official page. Complete this source order before reading a reference, inspecting local or repository files, running a Codex manual or model resolver, drafting a plan, or answering from memory. Use the actual fetched page, not a search snippet or an unopened link. If one official search or page does not establish the answer, search another appropriate official domain and actually open or fetch the result. Preserve the exact requested model; never substitute a newer model.
+
+**Only exception:** An explicitly requested, genuinely broad, cross-topic Codex setup, orientation, or system-map synthesis may use the manual first when shell execution and an allowed temporary cache are available. A specific Codex feature, setting, command, error, model, or requested citation remains docs-first. Mixed Chat/Work/Codex comparisons are official documentation questions, not manual-first Codex requests.
+
+For generic software tasks, answer the software task directly. OpenAI implementation, debugging, SDK, API, prompting, agent, and eval requests are not generic.
+
+For a straightforward factual or citation-only request, follow the source order and do not read a route reference. This includes straightforward API facts, ChatGPT Work or mixed Chat/Work/Codex comparisons, model tiers, aliases, Pro mode, reasoning settings, factual migration baselines, and narrow Codex facts. Prioritize `learn.chatgpt.com` for ChatGPT Work.
+
+## Choose one primary route
+
+Use the first matching route, and read its reference only when the requested task needs that specialized workflow:
+
+- **Explicitly requested local documentation integration:** Read [integration guidance](references/mcp-diagnostics.md) only when the user explicitly requests that local integration.
+- **Model migration, upgrades, or model-specific prompting:** Read [model-migration.md](references/model-migration.md) for actual migration planning, implementation, dynamic target resolution, or prompt changes. Preserve an explicitly requested target.
+- **Model selection and comparisons:** Read [model-selection.md](references/model-selection.md) only when nuanced current, latest, default, cost, latency, quality, or modality tradeoffs need more guidance. Do not run a migration resolver for selection alone.
+- **Product, API, ChatGPT Work, and mixed Chat/Work/Codex documentation:** Read [official-docs.md](references/official-docs.md) only when fetched official pages leave source selection, API schemas, or the requested implementation unresolved. This route is not manual-first.
+- **Explicitly broad Codex setup, orientation, or cross-topic synthesis:** Read [codex-self-knowledge.md](references/codex-self-knowledge.md) when the eligible Codex manual or deeper Codex procedures are needed.
+
+Read at most one primary reference. Do not open every route, bundled model guide, or helper script. Read a supporting reference or run a helper only when the chosen workflow demonstrably needs it.
+
+## Source and execution boundaries
+
+- Search, open, fetch, and cite only `developers.openai.com`, `platform.openai.com`, and `learn.chatgpt.com`. Cite the page that supports the claim. State uncertainty when official sources do not establish pricing, availability, account access, limits, or behavior.
+- Preserve an explicitly requested model for selection, migration, and prompting. Resolve an unspecified latest or current migration target only after searching and fetching current official guidance.
+- Use `references/latest-model.md` only as a disclosed fallback after current official model guidance does not answer the question. Read `references/upgrading-to-gpt-6-astra.md` only for an actual, requested GPT-6 migration; read `references/prompting-guide.md` only for requested prompting work.
+- Before building, running, editing, debugging, or testing an API-backed app or tool, use `openai-platform-api-key` first when available. Documentation, conceptual examples, model selection, and read-only guidance do not require an API key.
+- Say "OpenAI Docs" or "official OpenAI documentation" in user-facing answers. Keep exact official citations and examples concise.
+
+web search: Claude Haiku 5.5 pricing October 2026
+codex
+Web search works. I’m using the OpenAI Docs skill for the OpenAI claims and checking benchmark comparisons against independent measurements. The brief explicitly requires only the report file, so I’ll leave the draft untouched and won’t create a worktree or commit.
+
+web search: 
+web search: GPT-6 Astra GPT-6.1 Sol GPT-6 Luna pricing 272K ...
+web search: 
+web search: site:developers.openai.com "gpt-6-astra" pricing ...
+web search: 
+web search: https://www.anthropic.com/claude-haiku-5-5
+web search: 
+web search: https://developers.openai.com/api/docs/models/gpt-6-astra
+web search: 
+web search: site:artificialanalysis.ai "Haiku 5.5" ...
+web search: 
+web search: https://artificialanalysis.ai/articles/claude-haiku-5-5
+web search: 
+web search: https://artificialanalysis.ai/de/articles/claude-haiku-5-5
+codex
+The published prices and Claude Code effort defaults check out. The main uncertainty is cost per task: Artificial Analysis says its early Haiku figures omit the surcharge above 100K tokens. I’m checking which comparisons remain supported despite that limitation.
+
+web search: 
+web search: site:artificialanalysis.ai "claude-haiku-5-5" "gpt-6-luna" "AutomationBench" ...
+web search: 
+web search: https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna
+web search: 
+web search: 
+web search: 
+web search: 
+web search: 
+web search: https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna
+web search: https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-claude-opus-5-5
+web search: https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-xhigh-vs-gpt-6-luna
+web search: https://artificialanalysis.ai/models/comparisons/claude-opus-5-5-vs-gpt-6-astra
+web search: https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-gpt-6-astra
+web search: 
+web search: 
+web search: 
+web search: 
+web search: https://platform.claude.com/docs/en/models/haiku-5-5/prompting
+web search: 
+web search: https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-medium-vs-gpt-6-luna-medium
+web search: '100,000'
+web search: 
+web search: 
+web search: 
+web search: 
+web search: https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-claude-haiku-5-5-medium
+web search: '100K'
+web search: https://platform.claude.com/docs/en/build-with-claude/effort
+web search: site:platform.claude.com "Haiku 5.5" "high" "tool" ...
+web search: 
+web search: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5
+web search: 
+web search: site:developers.openai.com "gpt-6-luna" "classification" "extraction" ...
+codex
+The current Sonnet comparison shows about 9% lower cost than Opus at `max`; the older result showed it costing more. Haiku’s claimed weakness on tool workflows also needs narrowing: the cited SaaS benchmark had a known testing issue. I’ll distinguish those qualifications from the pricing facts that hold.
+
+web search: 
+web search: 
+web search: 
+web search: https://developers.openai.com/api/docs/guides/deployment-checklist
+web search: 
+web search: 'model_reasoning_effort' in https://developers.openai.com/codex/config-reference
+apply patch
+patch: completed
+/tmp/verify.XkpL/gpt-6-astra/verification.md
+diff --git a/verification.md b/verification.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..b290ebf1da871101bcb93322b618d544e82b031d
+--- /dev/null
++++ b/verification.md
+@@ -0,0 +1,76 @@
++Verifier model: `gpt-6-astra`. Verification date: 2026-10-08.
++
++| Claim in the requested scope | Verdict | Source and supporting evidence |
++| --- | --- | --- |
++| H1. `claude-haiku-5-5` is a current, usable model ID, including in Claude Code. | **HOLDS** | [Model lifecycle](https://platform.claude.com/docs/en/about-claude/model-deprecations), vendor, undated: Active. [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: explicitly documents selecting this ID. |
++| H2. Haiku 5.5 is the cheap Claude. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated: lowest listed Claude input/output rates, including its higher context tier. This establishes token prices, not every task's final bill. |
++| H3. Haiku 5.5 is intended for extraction and classification. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated: both are stated use cases. Vendor positioning only. |
++| H4. Haiku 5.5 is intended for summaries. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: explicitly identifies summarization. Vendor positioning only. |
++| H5. Haiku 5.5 is usable for triage. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: includes Asana's bug-triage testing. Customer testimony selected and published by the vendor, not independent replication. |
++| H6. Small, well-specified code edits are a reasonable Haiku workload. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: supports agentic coding and describes verification needs. This supports the recommendation's premise, not guaranteed success. |
++| H7. Haiku is about level with GPT-6 Luna overall. | **HOLDS** | [AA comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna), independent, undated: Haiku `high` and Luna `max` both score 38. Effort must be specified: [both at max](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna) score 43 and 38. |
++| H8. Haiku beats Luna on terminal tasks at `high` and above. | **HOLDS** | AA's [high](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna), [xhigh](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-xhigh-vs-gpt-6-luna), and [max](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna) comparisons, independent, undated: Terminal-Bench 4.0 scores 22%, 29%, 33%, versus Luna `max` at 13%. |
++| H9. Haiku is behind Luna on tool-driven workflows as a general model characteristic. | **UNSUPPORTED** | [AA Haiku report](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07: the supporting SaaS result is explicitly provisional because of a pre-release refusal issue. It does not establish the broad claim. See details below. |
++| H10. Haiku often costs more per task than Luna because it generates more tokens. | **HOLDS** | AA [high comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna) and [max comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna), independent, undated: 55K versus 50K output tokens and $0.08 versus $0.07 at Haiku `high`/Luna `max`; 162K versus 50K and $0.21 versus $0.07 at `max`/`max`. These are weighted benchmark averages. |
++| H11. `medium` is a supported starting point for routine Haiku work. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: recommends starting at `medium` for most work. Only vendor guidance supports the precise recommendation. |
++| H12. `high` suits longer Haiku tool/agent sequences. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: recommends `high` for longer agent tasks. [AA high versus medium](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-claude-haiku-5-5-medium), independent, undated: terminal and SaaS scores improve. |
++| H13. Beyond `high`, Haiku token consumption climbs steeply, the stated reason to consider Sol or Sonnet instead. | **HOLDS** | AA [high](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna), [xhigh](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-xhigh-vs-gpt-6-luna), and [max](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna), independent, undated: 55K, 89K, 162K output tokens per task. Escalation itself is advice, not a factual verdict. |
++| H14. Haiku prompts exceeding 100K tokens have 5x token rates. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated: input/output rise from $0.10/$0.50 to $0.50/$2.50 per million. |
++| H15. A growing session transcript can cross that threshold. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: Haiku defaults to compaction around 967K. Therefore 100K can be crossed well before automatic compaction. This is an inference from documented behavior. |
++| H16. Haiku 5.5 is newly released. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: released the day before this review. |
++| S1. Sonnet 5.5 costs about the same per task as Opus 5.5 at `max`. | **HOLDS** | [AA current comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-claude-opus-5-5), independent, undated: $5.46 versus $5.98, approximately 9% less. “About the same” is a defensible approximation. |
++| S2. The alternative “or more at max” reflects the current aggregate Sonnet/Opus comparison. | **STALE** | [AA Sonnet launch analysis](https://artificialanalysis.ai/articles/claude-sonnet-5-5), independent, 2026-09-28, reported Sonnet at $7.60. The [current comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-claude-opus-5-5) puts it below Opus. Details below. |
++| N1. The cheap-work starting picks, Haiku 5.5 and GPT-6 Luna, have a factual basis. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07, and [OpenAI deployment guide](https://developers.openai.com/api/docs/guides/deployment-checklist), vendor, undated: both target efficient repetitive work. Exact suitability is advice and needs task validation. |
++| E1. Claude's `--effort` and Codex's `model_reasoning_effort` are real controls. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config) and [Codex configuration](https://learn.chatgpt.com/docs/config-file/config-reference), both vendor, undated: both controls are documented. |
++| E2. Effort materially changes capability and cost, supporting tuning effort before changing models. | **HOLDS** | [AA Haiku effort comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-claude-haiku-5-5-medium), independent, undated: `medium` to `max` changes score 34 to 43 and provisional cost $0.05 to $0.21. “Comparable to model choice” is qualitative, not a universal equivalence. |
++| E3. The reason to avoid routinely maximizing effort is higher spend for sometimes small gains. | **HOLDS** | [AA Haiku analysis](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07: `xhigh` to `max` adds two index points with about 1.8x output tokens. The claim that `max` is “seldom worth it” remains advice. |
++| E4. Opus 5.5 defaults to `medium` in Claude Code. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: explicit default. Vendor-only support. |
++| E5. Sonnet 5.5 defaults to `medium` in Claude Code. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: explicit default. Its API default is a separate setting. Vendor-only support. |
++| E6. Haiku 5.5 defaults to `medium` in Claude Code. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: explicit for both API and Claude Code. Vendor-only support. |
++| E7. Fable 5.1 defaults to `high` in Claude Code. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: `high` applies except for the enumerated models, which do not include Fable. Vendor-only support. |
++| C1. Cost per task depends on actual token consumption, not only the rate card. | **HOLDS** | [AA cost methodology on its comparison page](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated: combines token categories and their rates, weighted by evaluation. It measures cost per attempted benchmark task, not necessarily per successful task. |
++| C2. Opus 5.5 at `max` emits within roughly 4x to 10x Astra's output tokens. | **HOLDS** | [AA Opus/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-opus-5-5-vs-gpt-6-astra), independent, undated: 119K versus 27K per task, about 4.4x, both `max`. |
++| C3. Sonnet 5.5 at `max` emits within roughly 4x to 10x Astra's output tokens. | **HOLDS** | [AA Sonnet/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-gpt-6-astra), independent, undated: 197K versus 27K, about 7.3x, both `max`. |
++| C4. Astra costs less per task than Opus 5.5 despite higher token prices. | **HOLDS** | [AA Opus/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-opus-5-5-vs-gpt-6-astra), independent, undated: $3.26 versus $5.98, both `max`. Benchmark-specific, not an assurance about arbitrary workloads. |
++| C5. Astra costs less per task than Sonnet 5.5 despite higher token prices. | **HOLDS** | [AA Sonnet/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-gpt-6-astra), independent, undated: $3.26 versus $5.46, both `max`, using the reduced Sonnet cache-read rate. |
++| C6. Haiku `max` costs more per task than GPT-6.1 Sol `low`. | **HOLDS** | [AA comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated: $0.21 versus $0.13. Haiku's omitted surcharge makes this a conservative directional comparison, not a final bill estimate. |
++| C7. Haiku `max` and Sol 6.1 `low` have about equal quality. | **HOLDS** | [AA comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated: aggregate scores 43 and 42. Individual tasks differ substantially. |
++| P1. Fable 5.1 costs $10/$50 per million input/output tokens. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated. |
++| P2. Astra costs $10/$50 per million input/output tokens. | **HOLDS** | [Astra model documentation](https://developers.openai.com/api/docs/models/gpt-6-astra), vendor, undated. |
++| P3. Opus 5.5 costs $4/$20 per million input/output tokens. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated. |
++| P4. Sonnet 5.5 costs $2/$10 per million input/output tokens. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated. |
++| P5. GPT-6.1 Sol costs $2/$10 per million input/output tokens. | **HOLDS** | [Sol 6.1 model documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol), vendor, undated. |
++| P6. Haiku 5.5 costs $0.10/$0.50 up to 100K input tokens, then $0.50/$2.50. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated. The threshold is strictly above 100,000. |
++| P7. GPT-6 Luna costs $0.10/$0.50 per million input/output tokens. | **HOLDS** | [Luna model documentation](https://developers.openai.com/api/docs/models/gpt-6-luna), vendor, undated. |
++| P8. Sonnet cache reads cost $0.10 per million, reducing costs when a large prefix is reused. | **HOLDS** | [Haiku launch and Sonnet price update](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: announces the halving from $0.20. Actual savings depend on cache hits. |
++| L1. Astra bills the full request at 2x input and 1.5x output above 272K input tokens. | **HOLDS** | [Astra documentation](https://developers.openai.com/api/docs/models/gpt-6-astra), vendor, undated: explicit full-request rule. Cache rates also double. |
++| L2. GPT-6.1 Sol has the same full-request surcharge and threshold. | **HOLDS** | [Sol 6.1 documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol), vendor, undated. |
++| L3. GPT-6 Luna has the same full-request surcharge and threshold. | **HOLDS** | [Luna documentation](https://developers.openai.com/api/docs/models/gpt-6-luna), vendor, undated. |
++| L4. The listed larger Claude models have 1M context and no long-input rate increase. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated: standard rates across 1M for current models other than Haiku 5.5. |
++| L5. Haiku's higher tier applies to the request, including output, rather than only excess input tokens. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated: both input and output rates are selected by total prompt length. Cache categories also rise 5x. |
++| L6. Very large contexts favor the larger Claudes on cost. | **HOLDS** | Inference from [Claude rates](https://platform.claude.com/docs/en/about-claude/pricing) and the OpenAI model pages above, vendor, undated: absence of a surcharge improves their relative position. This does not establish that every larger Claude is cheaper than every Codex model. See qualification below. |
++| L7. Large contexts favor Luna over Haiku on cost. | **HOLDS** | Inference from [Luna](https://developers.openai.com/api/docs/models/gpt-6-luna) and [Haiku](https://platform.claude.com/docs/en/models/haiku-5-5/overview) rates, vendor, undated: above 272K, Luna is $0.20/$0.75 versus Haiku's $0.50/$2.50. This compares equal token quantities. |
++| X1. Haiku 4.5 remains callable. | **HOLDS** | [Claude lifecycle](https://platform.claude.com/docs/en/about-claude/model-deprecations), vendor, undated: `claude-haiku-4-5-20251001` remains Active. “Not sooner than October 15” is not a scheduled retirement. |
++| X2. Haiku 4.5 is superseded by a better and/or cheaper listed same-vendor model. | **HOLDS** | [AA release comparison](https://artificialanalysis.ai/models/releases/comparisons/claude-haiku-5-5-vs-claude-4-5-haiku), independent, undated: Haiku 5.5 scores 43 versus 17 at the top measured settings. [Launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: lower prices in both prompt tiers. Superseded does not mean retired or universally superior. |
++
++All undated sources were checked on 2026-10-08. Their publication dates are not exposed, so no date has been inferred from a crawl timestamp. Vendor pricing citations establish published standard API rates, not independently audited invoices. The repeated rates in the cost-to-task bullet are covered by P1 through P7. Other rows and unchanged recommendations are outside the brief's factual scope.
++
++**H9: narrow or remove the tool-workflow claim.** Artificial Analysis measured 35% on AutomationBench-AA for Haiku `max`, versus Luna's 53%, but says a pre-release refusal problem depressed Haiku's result and a rerun is planned. That supports the reported measurement, not a settled weakness across tool-driven workflows. Haiku also leads on the terminal and professional-work measurements listed above, which themselves involve tools. Since the shipped file must omit research history, remove the generalization or restrict it to a cautiously phrased SaaS-workflow preference. [AA Haiku report](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07.
++
++**S2: update the directional comparison.** The September 28 analysis reported $7.60 for Sonnet `max`, above Opus's $5.98. The current comparison uses Sonnet's $0.10 cache reads and reports $5.46 against $5.98. The draft's “about the same” survives, but “or more” should not present the older aggregate ranking as current. A precise replacement is: “At max, its measured task cost is close to Opus 5.5.” Specific workloads can still reverse the ordering. [Historical AA analysis](https://artificialanalysis.ai/articles/claude-sonnet-5-5), independent, 2026-09-28, and [current AA comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-claude-opus-5-5), independent, undated.
++
++**Qualifications that matter when using the HOLDS verdicts.**
++
++- H7 needs an effort pairing. Equal aggregate scores occur at Haiku `high` versus Luna `max`. Haiku's `medium`, `high`, `xhigh`, and `max` scores are 34, 38, 41, and 43. Treat “about level” as a rough class comparison. [AA Haiku release results](https://artificialanalysis.ai/models/releases/claude-haiku-5-5), independent, undated.
++- Haiku cost figures are provisional and exclude its long-input surcharge. This does not overturn C6: adding an omitted Haiku charge cannot make its $0.21 estimate cheaper than Sol's $0.13, holding the measured runs and Sol estimate fixed. It does prevent treating those amounts as complete expected bills. The scope of “often” in H10 is benchmark averages, not a measured fraction of real-world tasks. [AA Haiku analysis](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07.
++- The Sonnet `medium` default is specifically Claude Code behavior. The API defaults Sonnet to `high`. These are compatible facts, not contradictory documentation. [API effort documentation](https://platform.claude.com/docs/en/build-with-claude/effort), vendor, undated.
++- L6 describes a relative pricing benefit, not a universal winner. For 300K uncached input tokens and 10K output tokens, standard-rate arithmetic gives Sol 6.1 $1.35, Sonnet $0.70, Opus $1.40, and Fable $3.50. Even beyond the threshold, larger Claude models do not all beat Sol. Real runs also differ in tokenization, generated tokens, caching, and retries. Calculation from [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing) and [Sol documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol), vendor, undated. Prefer: “Long inputs improve the larger Claudes' relative pricing; compare the specific models and cache mix.”
++- Benchmark cost per task is not cost per successful completion. The draft's general definition of getting work done should not imply that the quoted averages have been normalized by success rate. [AA methodology explanation](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated.
++
++**Ratings.** I have not assigned verdicts to the depth, execution, or cost ratings. No scoped rating is clearly disproved at the recommended routine effort. Haiku's “lowest” cost category becomes misleading if readers carry it to `max` or long contexts, which the row already warns about. Identical execution ratings for Haiku and Luna hide their opposite terminal/SaaS strengths, but a coarse rating is not inherently wrong. The research supports naming the effort and workload rather than changing the numeric scores on this evidence alone.
++
++**Material to remove from the shipped draft.** The Haiku sentence “Newly released, so this placement rests on thin early evidence” explicitly describes the evidence behind the document. Remove that sentence under the brief's rule. The release date is independently verifiable, but “thin” describes research confidence rather than model behavior. I found no named sources, named studies, “this used to say” history, or explicit notes about honesty, evaluation gaming, outages, or silent substitution anywhere in the supplied draft. The warning about returning no visible output is a runtime-behavior warning, not an outage or substitution claim. Its factual verification was outside the changed scope.
++
++**Source concentration and access limits.** Almost all independent performance and cost verdicts rest on one evaluator, Artificial Analysis. Its many model and comparison URLs are not independent replications of one another. Vendor documents are the only support used for exact CLI defaults, product availability, and several workload recommendations. The launch page's customer quotations were not counted as separate independent sources. No live API calls or independent benchmark runs were performed.
++
++Web search worked. Some direct page opens failed, including the Haiku overview, its initially attempted prompting URL, AA's Haiku article and German variant, and a Haiku-medium/Luna-medium comparison URL. The English AA article, official overview, and correct prompting page were subsequently retrieved through working links. The German page and medium/medium comparison were not recovered or relied on. The draft was not edited.
+
+diff --git a/verification.md b/verification.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..b290ebf1da871101bcb93322b618d544e82b031d
+--- /dev/null
++++ b/verification.md
+@@ -0,0 +1,76 @@
++Verifier model: `gpt-6-astra`. Verification date: 2026-10-08.
++
++| Claim in the requested scope | Verdict | Source and supporting evidence |
++| --- | --- | --- |
++| H1. `claude-haiku-5-5` is a current, usable model ID, including in Claude Code. | **HOLDS** | [Model lifecycle](https://platform.claude.com/docs/en/about-claude/model-deprecations), vendor, undated: Active. [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: explicitly documents selecting this ID. |
++| H2. Haiku 5.5 is the cheap Claude. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated: lowest listed Claude input/output rates, including its higher context tier. This establishes token prices, not every task's final bill. |
++| H3. Haiku 5.5 is intended for extraction and classification. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated: both are stated use cases. Vendor positioning only. |
++| H4. Haiku 5.5 is intended for summaries. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: explicitly identifies summarization. Vendor positioning only. |
++| H5. Haiku 5.5 is usable for triage. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: includes Asana's bug-triage testing. Customer testimony selected and published by the vendor, not independent replication. |
++| H6. Small, well-specified code edits are a reasonable Haiku workload. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: supports agentic coding and describes verification needs. This supports the recommendation's premise, not guaranteed success. |
++| H7. Haiku is about level with GPT-6 Luna overall. | **HOLDS** | [AA comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna), independent, undated: Haiku `high` and Luna `max` both score 38. Effort must be specified: [both at max](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna) score 43 and 38. |
++| H8. Haiku beats Luna on terminal tasks at `high` and above. | **HOLDS** | AA's [high](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna), [xhigh](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-xhigh-vs-gpt-6-luna), and [max](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna) comparisons, independent, undated: Terminal-Bench 4.0 scores 22%, 29%, 33%, versus Luna `max` at 13%. |
++| H9. Haiku is behind Luna on tool-driven workflows as a general model characteristic. | **UNSUPPORTED** | [AA Haiku report](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07: the supporting SaaS result is explicitly provisional because of a pre-release refusal issue. It does not establish the broad claim. See details below. |
++| H10. Haiku often costs more per task than Luna because it generates more tokens. | **HOLDS** | AA [high comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna) and [max comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna), independent, undated: 55K versus 50K output tokens and $0.08 versus $0.07 at Haiku `high`/Luna `max`; 162K versus 50K and $0.21 versus $0.07 at `max`/`max`. These are weighted benchmark averages. |
++| H11. `medium` is a supported starting point for routine Haiku work. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: recommends starting at `medium` for most work. Only vendor guidance supports the precise recommendation. |
++| H12. `high` suits longer Haiku tool/agent sequences. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: recommends `high` for longer agent tasks. [AA high versus medium](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-claude-haiku-5-5-medium), independent, undated: terminal and SaaS scores improve. |
++| H13. Beyond `high`, Haiku token consumption climbs steeply, the stated reason to consider Sol or Sonnet instead. | **HOLDS** | AA [high](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna), [xhigh](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-xhigh-vs-gpt-6-luna), and [max](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna), independent, undated: 55K, 89K, 162K output tokens per task. Escalation itself is advice, not a factual verdict. |
++| H14. Haiku prompts exceeding 100K tokens have 5x token rates. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated: input/output rise from $0.10/$0.50 to $0.50/$2.50 per million. |
++| H15. A growing session transcript can cross that threshold. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: Haiku defaults to compaction around 967K. Therefore 100K can be crossed well before automatic compaction. This is an inference from documented behavior. |
++| H16. Haiku 5.5 is newly released. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: released the day before this review. |
++| S1. Sonnet 5.5 costs about the same per task as Opus 5.5 at `max`. | **HOLDS** | [AA current comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-claude-opus-5-5), independent, undated: $5.46 versus $5.98, approximately 9% less. “About the same” is a defensible approximation. |
++| S2. The alternative “or more at max” reflects the current aggregate Sonnet/Opus comparison. | **STALE** | [AA Sonnet launch analysis](https://artificialanalysis.ai/articles/claude-sonnet-5-5), independent, 2026-09-28, reported Sonnet at $7.60. The [current comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-claude-opus-5-5) puts it below Opus. Details below. |
++| N1. The cheap-work starting picks, Haiku 5.5 and GPT-6 Luna, have a factual basis. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07, and [OpenAI deployment guide](https://developers.openai.com/api/docs/guides/deployment-checklist), vendor, undated: both target efficient repetitive work. Exact suitability is advice and needs task validation. |
++| E1. Claude's `--effort` and Codex's `model_reasoning_effort` are real controls. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config) and [Codex configuration](https://learn.chatgpt.com/docs/config-file/config-reference), both vendor, undated: both controls are documented. |
++| E2. Effort materially changes capability and cost, supporting tuning effort before changing models. | **HOLDS** | [AA Haiku effort comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-claude-haiku-5-5-medium), independent, undated: `medium` to `max` changes score 34 to 43 and provisional cost $0.05 to $0.21. “Comparable to model choice” is qualitative, not a universal equivalence. |
++| E3. The reason to avoid routinely maximizing effort is higher spend for sometimes small gains. | **HOLDS** | [AA Haiku analysis](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07: `xhigh` to `max` adds two index points with about 1.8x output tokens. The claim that `max` is “seldom worth it” remains advice. |
++| E4. Opus 5.5 defaults to `medium` in Claude Code. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: explicit default. Vendor-only support. |
++| E5. Sonnet 5.5 defaults to `medium` in Claude Code. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: explicit default. Its API default is a separate setting. Vendor-only support. |
++| E6. Haiku 5.5 defaults to `medium` in Claude Code. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: explicit for both API and Claude Code. Vendor-only support. |
++| E7. Fable 5.1 defaults to `high` in Claude Code. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: `high` applies except for the enumerated models, which do not include Fable. Vendor-only support. |
++| C1. Cost per task depends on actual token consumption, not only the rate card. | **HOLDS** | [AA cost methodology on its comparison page](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated: combines token categories and their rates, weighted by evaluation. It measures cost per attempted benchmark task, not necessarily per successful task. |
++| C2. Opus 5.5 at `max` emits within roughly 4x to 10x Astra's output tokens. | **HOLDS** | [AA Opus/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-opus-5-5-vs-gpt-6-astra), independent, undated: 119K versus 27K per task, about 4.4x, both `max`. |
++| C3. Sonnet 5.5 at `max` emits within roughly 4x to 10x Astra's output tokens. | **HOLDS** | [AA Sonnet/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-gpt-6-astra), independent, undated: 197K versus 27K, about 7.3x, both `max`. |
++| C4. Astra costs less per task than Opus 5.5 despite higher token prices. | **HOLDS** | [AA Opus/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-opus-5-5-vs-gpt-6-astra), independent, undated: $3.26 versus $5.98, both `max`. Benchmark-specific, not an assurance about arbitrary workloads. |
++| C5. Astra costs less per task than Sonnet 5.5 despite higher token prices. | **HOLDS** | [AA Sonnet/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-gpt-6-astra), independent, undated: $3.26 versus $5.46, both `max`, using the reduced Sonnet cache-read rate. |
++| C6. Haiku `max` costs more per task than GPT-6.1 Sol `low`. | **HOLDS** | [AA comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated: $0.21 versus $0.13. Haiku's omitted surcharge makes this a conservative directional comparison, not a final bill estimate. |
++| C7. Haiku `max` and Sol 6.1 `low` have about equal quality. | **HOLDS** | [AA comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated: aggregate scores 43 and 42. Individual tasks differ substantially. |
++| P1. Fable 5.1 costs $10/$50 per million input/output tokens. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated. |
++| P2. Astra costs $10/$50 per million input/output tokens. | **HOLDS** | [Astra model documentation](https://developers.openai.com/api/docs/models/gpt-6-astra), vendor, undated. |
++| P3. Opus 5.5 costs $4/$20 per million input/output tokens. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated. |
++| P4. Sonnet 5.5 costs $2/$10 per million input/output tokens. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated. |
++| P5. GPT-6.1 Sol costs $2/$10 per million input/output tokens. | **HOLDS** | [Sol 6.1 model documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol), vendor, undated. |
++| P6. Haiku 5.5 costs $0.10/$0.50 up to 100K input tokens, then $0.50/$2.50. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated. The threshold is strictly above 100,000. |
++| P7. GPT-6 Luna costs $0.10/$0.50 per million input/output tokens. | **HOLDS** | [Luna model documentation](https://developers.openai.com/api/docs/models/gpt-6-luna), vendor, undated. |
++| P8. Sonnet cache reads cost $0.10 per million, reducing costs when a large prefix is reused. | **HOLDS** | [Haiku launch and Sonnet price update](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: announces the halving from $0.20. Actual savings depend on cache hits. |
++| L1. Astra bills the full request at 2x input and 1.5x output above 272K input tokens. | **HOLDS** | [Astra documentation](https://developers.openai.com/api/docs/models/gpt-6-astra), vendor, undated: explicit full-request rule. Cache rates also double. |
++| L2. GPT-6.1 Sol has the same full-request surcharge and threshold. | **HOLDS** | [Sol 6.1 documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol), vendor, undated. |
++| L3. GPT-6 Luna has the same full-request surcharge and threshold. | **HOLDS** | [Luna documentation](https://developers.openai.com/api/docs/models/gpt-6-luna), vendor, undated. |
++| L4. The listed larger Claude models have 1M context and no long-input rate increase. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated: standard rates across 1M for current models other than Haiku 5.5. |
++| L5. Haiku's higher tier applies to the request, including output, rather than only excess input tokens. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated: both input and output rates are selected by total prompt length. Cache categories also rise 5x. |
++| L6. Very large contexts favor the larger Claudes on cost. | **HOLDS** | Inference from [Claude rates](https://platform.claude.com/docs/en/about-claude/pricing) and the OpenAI model pages above, vendor, undated: absence of a surcharge improves their relative position. This does not establish that every larger Claude is cheaper than every Codex model. See qualification below. |
++| L7. Large contexts favor Luna over Haiku on cost. | **HOLDS** | Inference from [Luna](https://developers.openai.com/api/docs/models/gpt-6-luna) and [Haiku](https://platform.claude.com/docs/en/models/haiku-5-5/overview) rates, vendor, undated: above 272K, Luna is $0.20/$0.75 versus Haiku's $0.50/$2.50. This compares equal token quantities. |
++| X1. Haiku 4.5 remains callable. | **HOLDS** | [Claude lifecycle](https://platform.claude.com/docs/en/about-claude/model-deprecations), vendor, undated: `claude-haiku-4-5-20251001` remains Active. “Not sooner than October 15” is not a scheduled retirement. |
++| X2. Haiku 4.5 is superseded by a better and/or cheaper listed same-vendor model. | **HOLDS** | [AA release comparison](https://artificialanalysis.ai/models/releases/comparisons/claude-haiku-5-5-vs-claude-4-5-haiku), independent, undated: Haiku 5.5 scores 43 versus 17 at the top measured settings. [Launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: lower prices in both prompt tiers. Superseded does not mean retired or universally superior. |
++
++All undated sources were checked on 2026-10-08. Their publication dates are not exposed, so no date has been inferred from a crawl timestamp. Vendor pricing citations establish published standard API rates, not independently audited invoices. The repeated rates in the cost-to-task bullet are covered by P1 through P7. Other rows and unchanged recommendations are outside the brief's factual scope.
++
++**H9: narrow or remove the tool-workflow claim.** Artificial Analysis measured 35% on AutomationBench-AA for Haiku `max`, versus Luna's 53%, but says a pre-release refusal problem depressed Haiku's result and a rerun is planned. That supports the reported measurement, not a settled weakness across tool-driven workflows. Haiku also leads on the terminal and professional-work measurements listed above, which themselves involve tools. Since the shipped file must omit research history, remove the generalization or restrict it to a cautiously phrased SaaS-workflow preference. [AA Haiku report](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07.
++
++**S2: update the directional comparison.** The September 28 analysis reported $7.60 for Sonnet `max`, above Opus's $5.98. The current comparison uses Sonnet's $0.10 cache reads and reports $5.46 against $5.98. The draft's “about the same” survives, but “or more” should not present the older aggregate ranking as current. A precise replacement is: “At max, its measured task cost is close to Opus 5.5.” Specific workloads can still reverse the ordering. [Historical AA analysis](https://artificialanalysis.ai/articles/claude-sonnet-5-5), independent, 2026-09-28, and [current AA comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-claude-opus-5-5), independent, undated.
++
++**Qualifications that matter when using the HOLDS verdicts.**
++
++- H7 needs an effort pairing. Equal aggregate scores occur at Haiku `high` versus Luna `max`. Haiku's `medium`, `high`, `xhigh`, and `max` scores are 34, 38, 41, and 43. Treat “about level” as a rough class comparison. [AA Haiku release results](https://artificialanalysis.ai/models/releases/claude-haiku-5-5), independent, undated.
++- Haiku cost figures are provisional and exclude its long-input surcharge. This does not overturn C6: adding an omitted Haiku charge cannot make its $0.21 estimate cheaper than Sol's $0.13, holding the measured runs and Sol estimate fixed. It does prevent treating those amounts as complete expected bills. The scope of “often” in H10 is benchmark averages, not a measured fraction of real-world tasks. [AA Haiku analysis](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07.
++- The Sonnet `medium` default is specifically Claude Code behavior. The API defaults Sonnet to `high`. These are compatible facts, not contradictory documentation. [API effort documentation](https://platform.claude.com/docs/en/build-with-claude/effort), vendor, undated.
++- L6 describes a relative pricing benefit, not a universal winner. For 300K uncached input tokens and 10K output tokens, standard-rate arithmetic gives Sol 6.1 $1.35, Sonnet $0.70, Opus $1.40, and Fable $3.50. Even beyond the threshold, larger Claude models do not all beat Sol. Real runs also differ in tokenization, generated tokens, caching, and retries. Calculation from [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing) and [Sol documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol), vendor, undated. Prefer: “Long inputs improve the larger Claudes' relative pricing; compare the specific models and cache mix.”
++- Benchmark cost per task is not cost per successful completion. The draft's general definition of getting work done should not imply that the quoted averages have been normalized by success rate. [AA methodology explanation](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated.
++
++**Ratings.** I have not assigned verdicts to the depth, execution, or cost ratings. No scoped rating is clearly disproved at the recommended routine effort. Haiku's “lowest” cost category becomes misleading if readers carry it to `max` or long contexts, which the row already warns about. Identical execution ratings for Haiku and Luna hide their opposite terminal/SaaS strengths, but a coarse rating is not inherently wrong. The research supports naming the effort and workload rather than changing the numeric scores on this evidence alone.
++
++**Material to remove from the shipped draft.** The Haiku sentence “Newly released, so this placement rests on thin early evidence” explicitly describes the evidence behind the document. Remove that sentence under the brief's rule. The release date is independently verifiable, but “thin” describes research confidence rather than model behavior. I found no named sources, named studies, “this used to say” history, or explicit notes about honesty, evaluation gaming, outages, or silent substitution anywhere in the supplied draft. The warning about returning no visible output is a runtime-behavior warning, not an outage or substitution claim. Its factual verification was outside the changed scope.
++
++**Source concentration and access limits.** Almost all independent performance and cost verdicts rest on one evaluator, Artificial Analysis. Its many model and comparison URLs are not independent replications of one another. Vendor documents are the only support used for exact CLI defaults, product availability, and several workload recommendations. The launch page's customer quotations were not counted as separate independent sources. No live API calls or independent benchmark runs were performed.
++
++Web search worked. Some direct page opens failed, including the Haiku overview, its initially attempted prompting URL, AA's Haiku article and German variant, and a Haiku-medium/Luna-medium comparison URL. The English AA article, official overview, and correct prompting page were subsequently retrieved through working links. The German page and medium/medium comparison were not recovered or relied on. The draft was not edited.
+
+exec
+/usr/bin/bash -lc "python - <<'PY'
+from pathlib import Path
+report = Path('/tmp/verify.XkpL/gpt-6-astra/verification.md').read_text()
+print('Report words:', len(report.split()))
+print('Claim rows:', sum(line.startswith('| ') for line in report.splitlines()) - 2)
+print('Em dashes:', report.count(chr(0x2014)))
+for source in ['https://artificialanalysis.ai/articles/claude-haiku-5-5', 'https://platform.claude.com/docs/en/about-claude/pricing', 'https://code.claude.com/docs/en/model-config']:
+    matching = [paragraph for paragraph in report.split('\\n\\n') if source in paragraph]
+    print(source)
+    for paragraph in matching:
+        if paragraph.startswith('| '):
+            print('  table row words:', sum(len(line.split()) for line in paragraph.splitlines() if source in line))
+        else:
+            print('  paragraph words:', len(paragraph.split()))
+print('Files:', ', '.join(str(path) for path in Path('/tmp/verify.XkpL/gpt-6-astra').iterdir()))
+PY" in /tmp/verify.XkpL/gpt-6-astra
+ succeeded in 0ms:
+Report words: 2474
+Claim rows: 50
+Em dashes: 0
+https://artificialanalysis.ai/articles/claude-haiku-5-5
+  table row words: 93
+  paragraph words: 85
+  paragraph words: 258
+https://platform.claude.com/docs/en/about-claude/pricing
+  table row words: 175
+  paragraph words: 258
+https://code.claude.com/docs/en/model-config
+  table row words: 186
+Files: /tmp/verify.XkpL/gpt-6-astra/.aws, /tmp/verify.XkpL/gpt-6-astra/.codex, /tmp/verify.XkpL/gpt-6-astra/.agents, /tmp/verify.XkpL/gpt-6-astra/.git, /tmp/verify.XkpL/gpt-6-astra/verification.md, /tmp/verify.XkpL/gpt-6-astra/brief.md, /tmp/verify.XkpL/gpt-6-astra/models-draft.md
+
+diff --git a/verification.md b/verification.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..b290ebf1da871101bcb93322b618d544e82b031d
+--- /dev/null
++++ b/verification.md
+@@ -0,0 +1,76 @@
++Verifier model: `gpt-6-astra`. Verification date: 2026-10-08.
++
++| Claim in the requested scope | Verdict | Source and supporting evidence |
++| --- | --- | --- |
++| H1. `claude-haiku-5-5` is a current, usable model ID, including in Claude Code. | **HOLDS** | [Model lifecycle](https://platform.claude.com/docs/en/about-claude/model-deprecations), vendor, undated: Active. [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: explicitly documents selecting this ID. |
++| H2. Haiku 5.5 is the cheap Claude. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated: lowest listed Claude input/output rates, including its higher context tier. This establishes token prices, not every task's final bill. |
++| H3. Haiku 5.5 is intended for extraction and classification. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated: both are stated use cases. Vendor positioning only. |
++| H4. Haiku 5.5 is intended for summaries. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: explicitly identifies summarization. Vendor positioning only. |
++| H5. Haiku 5.5 is usable for triage. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: includes Asana's bug-triage testing. Customer testimony selected and published by the vendor, not independent replication. |
++| H6. Small, well-specified code edits are a reasonable Haiku workload. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: supports agentic coding and describes verification needs. This supports the recommendation's premise, not guaranteed success. |
++| H7. Haiku is about level with GPT-6 Luna overall. | **HOLDS** | [AA comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna), independent, undated: Haiku `high` and Luna `max` both score 38. Effort must be specified: [both at max](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna) score 43 and 38. |
++| H8. Haiku beats Luna on terminal tasks at `high` and above. | **HOLDS** | AA's [high](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna), [xhigh](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-xhigh-vs-gpt-6-luna), and [max](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna) comparisons, independent, undated: Terminal-Bench 4.0 scores 22%, 29%, 33%, versus Luna `max` at 13%. |
++| H9. Haiku is behind Luna on tool-driven workflows as a general model characteristic. | **UNSUPPORTED** | [AA Haiku report](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07: the supporting SaaS result is explicitly provisional because of a pre-release refusal issue. It does not establish the broad claim. See details below. |
++| H10. Haiku often costs more per task than Luna because it generates more tokens. | **HOLDS** | AA [high comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna) and [max comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna), independent, undated: 55K versus 50K output tokens and $0.08 versus $0.07 at Haiku `high`/Luna `max`; 162K versus 50K and $0.21 versus $0.07 at `max`/`max`. These are weighted benchmark averages. |
++| H11. `medium` is a supported starting point for routine Haiku work. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: recommends starting at `medium` for most work. Only vendor guidance supports the precise recommendation. |
++| H12. `high` suits longer Haiku tool/agent sequences. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: recommends `high` for longer agent tasks. [AA high versus medium](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-claude-haiku-5-5-medium), independent, undated: terminal and SaaS scores improve. |
++| H13. Beyond `high`, Haiku token consumption climbs steeply, the stated reason to consider Sol or Sonnet instead. | **HOLDS** | AA [high](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna), [xhigh](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-xhigh-vs-gpt-6-luna), and [max](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna), independent, undated: 55K, 89K, 162K output tokens per task. Escalation itself is advice, not a factual verdict. |
++| H14. Haiku prompts exceeding 100K tokens have 5x token rates. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated: input/output rise from $0.10/$0.50 to $0.50/$2.50 per million. |
++| H15. A growing session transcript can cross that threshold. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: Haiku defaults to compaction around 967K. Therefore 100K can be crossed well before automatic compaction. This is an inference from documented behavior. |
++| H16. Haiku 5.5 is newly released. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: released the day before this review. |
++| S1. Sonnet 5.5 costs about the same per task as Opus 5.5 at `max`. | **HOLDS** | [AA current comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-claude-opus-5-5), independent, undated: $5.46 versus $5.98, approximately 9% less. “About the same” is a defensible approximation. |
++| S2. The alternative “or more at max” reflects the current aggregate Sonnet/Opus comparison. | **STALE** | [AA Sonnet launch analysis](https://artificialanalysis.ai/articles/claude-sonnet-5-5), independent, 2026-09-28, reported Sonnet at $7.60. The [current comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-claude-opus-5-5) puts it below Opus. Details below. |
++| N1. The cheap-work starting picks, Haiku 5.5 and GPT-6 Luna, have a factual basis. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07, and [OpenAI deployment guide](https://developers.openai.com/api/docs/guides/deployment-checklist), vendor, undated: both target efficient repetitive work. Exact suitability is advice and needs task validation. |
++| E1. Claude's `--effort` and Codex's `model_reasoning_effort` are real controls. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config) and [Codex configuration](https://learn.chatgpt.com/docs/config-file/config-reference), both vendor, undated: both controls are documented. |
++| E2. Effort materially changes capability and cost, supporting tuning effort before changing models. | **HOLDS** | [AA Haiku effort comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-claude-haiku-5-5-medium), independent, undated: `medium` to `max` changes score 34 to 43 and provisional cost $0.05 to $0.21. “Comparable to model choice” is qualitative, not a universal equivalence. |
++| E3. The reason to avoid routinely maximizing effort is higher spend for sometimes small gains. | **HOLDS** | [AA Haiku analysis](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07: `xhigh` to `max` adds two index points with about 1.8x output tokens. The claim that `max` is “seldom worth it” remains advice. |
++| E4. Opus 5.5 defaults to `medium` in Claude Code. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: explicit default. Vendor-only support. |
++| E5. Sonnet 5.5 defaults to `medium` in Claude Code. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: explicit default. Its API default is a separate setting. Vendor-only support. |
++| E6. Haiku 5.5 defaults to `medium` in Claude Code. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: explicit for both API and Claude Code. Vendor-only support. |
++| E7. Fable 5.1 defaults to `high` in Claude Code. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: `high` applies except for the enumerated models, which do not include Fable. Vendor-only support. |
++| C1. Cost per task depends on actual token consumption, not only the rate card. | **HOLDS** | [AA cost methodology on its comparison page](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated: combines token categories and their rates, weighted by evaluation. It measures cost per attempted benchmark task, not necessarily per successful task. |
++| C2. Opus 5.5 at `max` emits within roughly 4x to 10x Astra's output tokens. | **HOLDS** | [AA Opus/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-opus-5-5-vs-gpt-6-astra), independent, undated: 119K versus 27K per task, about 4.4x, both `max`. |
++| C3. Sonnet 5.5 at `max` emits within roughly 4x to 10x Astra's output tokens. | **HOLDS** | [AA Sonnet/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-gpt-6-astra), independent, undated: 197K versus 27K, about 7.3x, both `max`. |
++| C4. Astra costs less per task than Opus 5.5 despite higher token prices. | **HOLDS** | [AA Opus/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-opus-5-5-vs-gpt-6-astra), independent, undated: $3.26 versus $5.98, both `max`. Benchmark-specific, not an assurance about arbitrary workloads. |
++| C5. Astra costs less per task than Sonnet 5.5 despite higher token prices. | **HOLDS** | [AA Sonnet/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-gpt-6-astra), independent, undated: $3.26 versus $5.46, both `max`, using the reduced Sonnet cache-read rate. |
++| C6. Haiku `max` costs more per task than GPT-6.1 Sol `low`. | **HOLDS** | [AA comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated: $0.21 versus $0.13. Haiku's omitted surcharge makes this a conservative directional comparison, not a final bill estimate. |
++| C7. Haiku `max` and Sol 6.1 `low` have about equal quality. | **HOLDS** | [AA comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated: aggregate scores 43 and 42. Individual tasks differ substantially. |
++| P1. Fable 5.1 costs $10/$50 per million input/output tokens. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated. |
++| P2. Astra costs $10/$50 per million input/output tokens. | **HOLDS** | [Astra model documentation](https://developers.openai.com/api/docs/models/gpt-6-astra), vendor, undated. |
++| P3. Opus 5.5 costs $4/$20 per million input/output tokens. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated. |
++| P4. Sonnet 5.5 costs $2/$10 per million input/output tokens. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated. |
++| P5. GPT-6.1 Sol costs $2/$10 per million input/output tokens. | **HOLDS** | [Sol 6.1 model documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol), vendor, undated. |
++| P6. Haiku 5.5 costs $0.10/$0.50 up to 100K input tokens, then $0.50/$2.50. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated. The threshold is strictly above 100,000. |
++| P7. GPT-6 Luna costs $0.10/$0.50 per million input/output tokens. | **HOLDS** | [Luna model documentation](https://developers.openai.com/api/docs/models/gpt-6-luna), vendor, undated. |
++| P8. Sonnet cache reads cost $0.10 per million, reducing costs when a large prefix is reused. | **HOLDS** | [Haiku launch and Sonnet price update](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: announces the halving from $0.20. Actual savings depend on cache hits. |
++| L1. Astra bills the full request at 2x input and 1.5x output above 272K input tokens. | **HOLDS** | [Astra documentation](https://developers.openai.com/api/docs/models/gpt-6-astra), vendor, undated: explicit full-request rule. Cache rates also double. |
++| L2. GPT-6.1 Sol has the same full-request surcharge and threshold. | **HOLDS** | [Sol 6.1 documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol), vendor, undated. |
++| L3. GPT-6 Luna has the same full-request surcharge and threshold. | **HOLDS** | [Luna documentation](https://developers.openai.com/api/docs/models/gpt-6-luna), vendor, undated. |
++| L4. The listed larger Claude models have 1M context and no long-input rate increase. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated: standard rates across 1M for current models other than Haiku 5.5. |
++| L5. Haiku's higher tier applies to the request, including output, rather than only excess input tokens. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated: both input and output rates are selected by total prompt length. Cache categories also rise 5x. |
++| L6. Very large contexts favor the larger Claudes on cost. | **HOLDS** | Inference from [Claude rates](https://platform.claude.com/docs/en/about-claude/pricing) and the OpenAI model pages above, vendor, undated: absence of a surcharge improves their relative position. This does not establish that every larger Claude is cheaper than every Codex model. See qualification below. |
++| L7. Large contexts favor Luna over Haiku on cost. | **HOLDS** | Inference from [Luna](https://developers.openai.com/api/docs/models/gpt-6-luna) and [Haiku](https://platform.claude.com/docs/en/models/haiku-5-5/overview) rates, vendor, undated: above 272K, Luna is $0.20/$0.75 versus Haiku's $0.50/$2.50. This compares equal token quantities. |
++| X1. Haiku 4.5 remains callable. | **HOLDS** | [Claude lifecycle](https://platform.claude.com/docs/en/about-claude/model-deprecations), vendor, undated: `claude-haiku-4-5-20251001` remains Active. “Not sooner than October 15” is not a scheduled retirement. |
++| X2. Haiku 4.5 is superseded by a better and/or cheaper listed same-vendor model. | **HOLDS** | [AA release comparison](https://artificialanalysis.ai/models/releases/comparisons/claude-haiku-5-5-vs-claude-4-5-haiku), independent, undated: Haiku 5.5 scores 43 versus 17 at the top measured settings. [Launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: lower prices in both prompt tiers. Superseded does not mean retired or universally superior. |
++
++All undated sources were checked on 2026-10-08. Their publication dates are not exposed, so no date has been inferred from a crawl timestamp. Vendor pricing citations establish published standard API rates, not independently audited invoices. The repeated rates in the cost-to-task bullet are covered by P1 through P7. Other rows and unchanged recommendations are outside the brief's factual scope.
++
++**H9: narrow or remove the tool-workflow claim.** Artificial Analysis measured 35% on AutomationBench-AA for Haiku `max`, versus Luna's 53%, but says a pre-release refusal problem depressed Haiku's result and a rerun is planned. That supports the reported measurement, not a settled weakness across tool-driven workflows. Haiku also leads on the terminal and professional-work measurements listed above, which themselves involve tools. Since the shipped file must omit research history, remove the generalization or restrict it to a cautiously phrased SaaS-workflow preference. [AA Haiku report](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07.
++
++**S2: update the directional comparison.** The September 28 analysis reported $7.60 for Sonnet `max`, above Opus's $5.98. The current comparison uses Sonnet's $0.10 cache reads and reports $5.46 against $5.98. The draft's “about the same” survives, but “or more” should not present the older aggregate ranking as current. A precise replacement is: “At max, its measured task cost is close to Opus 5.5.” Specific workloads can still reverse the ordering. [Historical AA analysis](https://artificialanalysis.ai/articles/claude-sonnet-5-5), independent, 2026-09-28, and [current AA comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-claude-opus-5-5), independent, undated.
++
++**Qualifications that matter when using the HOLDS verdicts.**
++
++- H7 needs an effort pairing. Equal aggregate scores occur at Haiku `high` versus Luna `max`. Haiku's `medium`, `high`, `xhigh`, and `max` scores are 34, 38, 41, and 43. Treat “about level” as a rough class comparison. [AA Haiku release results](https://artificialanalysis.ai/models/releases/claude-haiku-5-5), independent, undated.
++- Haiku cost figures are provisional and exclude its long-input surcharge. This does not overturn C6: adding an omitted Haiku charge cannot make its $0.21 estimate cheaper than Sol's $0.13, holding the measured runs and Sol estimate fixed. It does prevent treating those amounts as complete expected bills. The scope of “often” in H10 is benchmark averages, not a measured fraction of real-world tasks. [AA Haiku analysis](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07.
++- The Sonnet `medium` default is specifically Claude Code behavior. The API defaults Sonnet to `high`. These are compatible facts, not contradictory documentation. [API effort documentation](https://platform.claude.com/docs/en/build-with-claude/effort), vendor, undated.
++- L6 describes a relative pricing benefit, not a universal winner. For 300K uncached input tokens and 10K output tokens, standard-rate arithmetic gives Sol 6.1 $1.35, Sonnet $0.70, Opus $1.40, and Fable $3.50. Even beyond the threshold, larger Claude models do not all beat Sol. Real runs also differ in tokenization, generated tokens, caching, and retries. Calculation from [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing) and [Sol documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol), vendor, undated. Prefer: “Long inputs improve the larger Claudes' relative pricing; compare the specific models and cache mix.”
++- Benchmark cost per task is not cost per successful completion. The draft's general definition of getting work done should not imply that the quoted averages have been normalized by success rate. [AA methodology explanation](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated.
++
++**Ratings.** I have not assigned verdicts to the depth, execution, or cost ratings. No scoped rating is clearly disproved at the recommended routine effort. Haiku's “lowest” cost category becomes misleading if readers carry it to `max` or long contexts, which the row already warns about. Identical execution ratings for Haiku and Luna hide their opposite terminal/SaaS strengths, but a coarse rating is not inherently wrong. The research supports naming the effort and workload rather than changing the numeric scores on this evidence alone.
++
++**Material to remove from the shipped draft.** The Haiku sentence “Newly released, so this placement rests on thin early evidence” explicitly describes the evidence behind the document. Remove that sentence under the brief's rule. The release date is independently verifiable, but “thin” describes research confidence rather than model behavior. I found no named sources, named studies, “this used to say” history, or explicit notes about honesty, evaluation gaming, outages, or silent substitution anywhere in the supplied draft. The warning about returning no visible output is a runtime-behavior warning, not an outage or substitution claim. Its factual verification was outside the changed scope.
++
++**Source concentration and access limits.** Almost all independent performance and cost verdicts rest on one evaluator, Artificial Analysis. Its many model and comparison URLs are not independent replications of one another. Vendor documents are the only support used for exact CLI defaults, product availability, and several workload recommendations. The launch page's customer quotations were not counted as separate independent sources. No live API calls or independent benchmark runs were performed.
++
++Web search worked. Some direct page opens failed, including the Haiku overview, its initially attempted prompting URL, AA's Haiku article and German variant, and a Haiku-medium/Luna-medium comparison URL. The English AA article, official overview, and correct prompting page were subsequently retrieved through working links. The German page and medium/medium comparison were not recovered or relied on. The draft was not edited.
+
+codex
+The report covers 50 scoped claims. Most hold, with qualifications around effort settings and benchmark costs. I’ve flagged the outdated Sonnet cost direction, the overly broad Haiku workflow claim, and the sentence about research evidence that should be removed.
+
+apply patch
+patch: completed
+/tmp/verify.XkpL/gpt-6-astra/verification.md
+diff --git a/verification.md b/verification.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..4d837284b47dffe0b3cd44f5dfb2e7791db1cbb9
+--- /dev/null
++++ b/verification.md
+@@ -0,0 +1,76 @@
++Verifier model: `gpt-6-astra`. Verification date: 2026-10-08.
++
++| Claim in the requested scope | Verdict | Source and supporting evidence |
++| --- | --- | --- |
++| H1. `claude-haiku-5-5` is a current, usable model ID, including in Claude Code. | **HOLDS** | [Model lifecycle](https://platform.claude.com/docs/en/about-claude/model-deprecations), vendor, undated: Active. [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: explicitly documents selecting this ID. |
++| H2. Haiku 5.5 is the cheap Claude. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated: lowest listed Claude input/output rates, including its higher context tier. This establishes token prices, not every task's final bill. |
++| H3. Haiku 5.5 is intended for extraction and classification. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated: both are stated use cases. Vendor positioning only. |
++| H4. Haiku 5.5 is intended for summaries. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: explicitly identifies summarization. Vendor positioning only. |
++| H5. Haiku 5.5 is usable for triage. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: includes Asana's bug-triage testing. Customer testimony selected and published by the vendor, not independent replication. |
++| H6. Small, well-specified code edits are a reasonable Haiku workload. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: supports agentic coding and describes verification needs. This supports the recommendation's premise, not guaranteed success. |
++| H7. Haiku is about level with GPT-6 Luna overall. | **HOLDS** | [AA comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna), independent, undated: Haiku `high` and Luna `max` both score 38. Effort must be specified: [both at max](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna) score 43 and 38. |
++| H8. Haiku beats Luna on terminal tasks at `high` and above. | **HOLDS** | AA's [high](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna), [xhigh](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-xhigh-vs-gpt-6-luna), and [max](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna) comparisons, independent, undated: Terminal-Bench 4.0 scores 22%, 29%, 33%, versus Luna `max` at 13%. |
++| H9. Haiku is behind Luna on tool-driven workflows as a general model characteristic. | **UNSUPPORTED** | [AA Haiku report](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07: provisional SaaS evidence only. See details. |
++| H10. Haiku often costs more per task than Luna because it generates more tokens. | **HOLDS** | AA [high comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna) and [max comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna), independent, undated: 55K versus 50K output tokens and $0.08 versus $0.07 at Haiku `high`/Luna `max`; 162K versus 50K and $0.21 versus $0.07 at `max`/`max`. These are weighted benchmark averages. |
++| H11. `medium` is a supported starting point for routine Haiku work. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: recommends starting at `medium` for most work. Only vendor guidance supports the precise recommendation. |
++| H12. `high` suits longer Haiku tool/agent sequences. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: recommends `high` for longer agent tasks. [AA high versus medium](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-claude-haiku-5-5-medium), independent, undated: terminal and SaaS scores improve. |
++| H13. Beyond `high`, Haiku token consumption climbs steeply, the stated reason to consider Sol or Sonnet instead. | **HOLDS** | AA [high](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna), [xhigh](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-xhigh-vs-gpt-6-luna), and [max](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna), independent, undated: 55K, 89K, 162K output tokens per task. Escalation itself is advice, not a factual verdict. |
++| H14. Haiku prompts exceeding 100K tokens have 5x token rates. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated: input/output rise from $0.10/$0.50 to $0.50/$2.50 per million. |
++| H15. A growing session transcript can cross that threshold. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: Haiku defaults to compaction around 967K. Therefore 100K can be crossed well before automatic compaction. This is an inference from documented behavior. |
++| H16. Haiku 5.5 is newly released. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: released the day before this review. |
++| S1. Sonnet 5.5 costs about the same per task as Opus 5.5 at `max`. | **HOLDS** | [AA current comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-claude-opus-5-5), independent, undated: $5.46 versus $5.98, approximately 9% less. “About the same” is a defensible approximation. |
++| S2. The alternative “or more at max” reflects the current aggregate Sonnet/Opus comparison. | **STALE** | [AA Sonnet launch analysis](https://artificialanalysis.ai/articles/claude-sonnet-5-5), independent, 2026-09-28, reported Sonnet at $7.60. The [current comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-claude-opus-5-5) puts it below Opus. Details below. |
++| N1. The cheap-work starting picks, Haiku 5.5 and GPT-6 Luna, have a factual basis. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07, and [OpenAI deployment guide](https://developers.openai.com/api/docs/guides/deployment-checklist), vendor, undated: both target efficient repetitive work. Exact suitability is advice and needs task validation. |
++| E1. Claude's `--effort` and Codex's `model_reasoning_effort` are real controls. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config) and [Codex configuration](https://learn.chatgpt.com/docs/config-file/config-reference), both vendor, undated: both controls are documented. |
++| E2. Effort materially changes capability and cost, supporting tuning effort before changing models. | **HOLDS** | [AA Haiku effort comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-claude-haiku-5-5-medium), independent, undated: `medium` to `max` changes score 34 to 43 and provisional cost $0.05 to $0.21. “Comparable to model choice” is qualitative, not a universal equivalence. |
++| E3. The reason to avoid routinely maximizing effort is higher spend for sometimes small gains. | **HOLDS** | [AA Haiku analysis](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07: `xhigh` to `max` adds two index points with about 1.8x output tokens. The claim that `max` is “seldom worth it” remains advice. |
++| E4. Opus 5.5 defaults to `medium` in Claude Code. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: explicit default. Vendor-only support. |
++| E5. Sonnet 5.5 defaults to `medium` in Claude Code. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: explicit default. Its API default is a separate setting. Vendor-only support. |
++| E6. Haiku 5.5 defaults to `medium` in Claude Code. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: explicit for both API and Claude Code. Vendor-only support. |
++| E7. Fable 5.1 defaults to `high` in Claude Code. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: `high` applies except for the enumerated models, which do not include Fable. Vendor-only support. |
++| C1. Cost per task depends on actual token consumption, not only the rate card. | **HOLDS** | [AA cost methodology on its comparison page](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated: combines token categories and their rates, weighted by evaluation. It measures cost per attempted benchmark task, not necessarily per successful task. |
++| C2. Opus 5.5 at `max` emits within roughly 4x to 10x Astra's output tokens. | **HOLDS** | [AA Opus/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-opus-5-5-vs-gpt-6-astra), independent, undated: 119K versus 27K per task, about 4.4x, both `max`. |
++| C3. Sonnet 5.5 at `max` emits within roughly 4x to 10x Astra's output tokens. | **HOLDS** | [AA Sonnet/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-gpt-6-astra), independent, undated: 197K versus 27K, about 7.3x, both `max`. |
++| C4. Astra costs less per task than Opus 5.5 despite higher token prices. | **HOLDS** | [AA Opus/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-opus-5-5-vs-gpt-6-astra), independent, undated: $3.26 versus $5.98, both `max`. Benchmark-specific, not an assurance about arbitrary workloads. |
++| C5. Astra costs less per task than Sonnet 5.5 despite higher token prices. | **HOLDS** | [AA Sonnet/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-gpt-6-astra), independent, undated: $3.26 versus $5.46, both `max`, using the reduced Sonnet cache-read rate. |
++| C6. Haiku `max` costs more per task than GPT-6.1 Sol `low`. | **HOLDS** | [AA comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated: $0.21 versus $0.13. Haiku's omitted surcharge makes this a conservative directional comparison, not a final bill estimate. |
++| C7. Haiku `max` and Sol 6.1 `low` have about equal quality. | **HOLDS** | [AA comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated: aggregate scores 43 and 42. Individual tasks differ substantially. |
++| P1. Fable 5.1 costs $10/$50 per million input/output tokens. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated. |
++| P2. Astra costs $10/$50 per million input/output tokens. | **HOLDS** | [Astra model documentation](https://developers.openai.com/api/docs/models/gpt-6-astra), vendor, undated. |
++| P3. Opus 5.5 costs $4/$20 per million input/output tokens. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated. |
++| P4. Sonnet 5.5 costs $2/$10 per million input/output tokens. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated. |
++| P5. GPT-6.1 Sol costs $2/$10 per million input/output tokens. | **HOLDS** | [Sol 6.1 model documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol), vendor, undated. |
++| P6. Haiku 5.5 costs $0.10/$0.50 up to 100K input tokens, then $0.50/$2.50. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated. The threshold is strictly above 100,000. |
++| P7. GPT-6 Luna costs $0.10/$0.50 per million input/output tokens. | **HOLDS** | [Luna model documentation](https://developers.openai.com/api/docs/models/gpt-6-luna), vendor, undated. |
++| P8. Sonnet cache reads cost $0.10 per million, reducing costs when a large prefix is reused. | **HOLDS** | [Haiku launch and Sonnet price update](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: announces the halving from $0.20. Actual savings depend on cache hits. |
++| L1. Astra bills the full request at 2x input and 1.5x output above 272K input tokens. | **HOLDS** | [Astra documentation](https://developers.openai.com/api/docs/models/gpt-6-astra), vendor, undated: explicit full-request rule. Cache rates also double. |
++| L2. GPT-6.1 Sol has the same full-request surcharge and threshold. | **HOLDS** | [Sol 6.1 documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol), vendor, undated. |
++| L3. GPT-6 Luna has the same full-request surcharge and threshold. | **HOLDS** | [Luna documentation](https://developers.openai.com/api/docs/models/gpt-6-luna), vendor, undated. |
++| L4. The listed larger Claude models have 1M context and no long-input rate increase. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated: standard rates across 1M for current models other than Haiku 5.5. |
++| L5. Haiku's higher tier applies to the request, including output, rather than only excess input tokens. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated: both input and output rates are selected by total prompt length. Cache categories also rise 5x. |
++| L6. Very large contexts favor the larger Claudes on cost. | **HOLDS** | Inference from [Claude rates](https://platform.claude.com/docs/en/about-claude/pricing) and the OpenAI model pages above, vendor, undated: absence of a surcharge improves their relative position. This does not establish that every larger Claude is cheaper than every Codex model. See qualification below. |
++| L7. Large contexts favor Luna over Haiku on cost. | **HOLDS** | Inference from [Luna](https://developers.openai.com/api/docs/models/gpt-6-luna) and [Haiku](https://platform.claude.com/docs/en/models/haiku-5-5/overview) rates, vendor, undated: above 272K, Luna is $0.20/$0.75 versus Haiku's $0.50/$2.50. This compares equal token quantities. |
++| X1. Haiku 4.5 remains callable. | **HOLDS** | [Claude lifecycle](https://platform.claude.com/docs/en/about-claude/model-deprecations), vendor, undated: `claude-haiku-4-5-20251001` remains Active. “Not sooner than October 15” is not a scheduled retirement. |
++| X2. Haiku 4.5 is superseded by a better and/or cheaper listed same-vendor model. | **HOLDS** | [AA release comparison](https://artificialanalysis.ai/models/releases/comparisons/claude-haiku-5-5-vs-claude-4-5-haiku), independent, undated: Haiku 5.5 scores 43 versus 17 at the top measured settings. [Launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: lower prices in both prompt tiers. Superseded does not mean retired or universally superior. |
++
++All undated sources were checked on 2026-10-08. Their publication dates are not exposed, so no date has been inferred from a crawl timestamp. Vendor pricing citations establish published standard API rates, not independently audited invoices. The repeated rates in the cost-to-task bullet are covered by P1 through P7. Other rows and unchanged recommendations are outside the brief's factual scope.
++
++**H9: narrow or remove the tool-workflow claim.** Haiku scored 35% versus Luna's 53% on AutomationBench-AA. The evaluator attributes an understatement to a pre-release refusal problem and plans a rerun. This cannot establish general tool-workflow inferiority. Remove the generalization or narrow it to a provisional SaaS-workflow preference. [AA Haiku report](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07.
++
++**S2: update the directional comparison.** The September 28 analysis reported $7.60 for Sonnet `max`, above Opus's $5.98. The current comparison uses Sonnet's $0.10 cache reads and reports $5.46 against $5.98. The draft's “about the same” survives, but “or more” should not present the older aggregate ranking as current. A precise replacement is: “At max, its measured task cost is close to Opus 5.5.” Specific workloads can still reverse the ordering. [Historical AA analysis](https://artificialanalysis.ai/articles/claude-sonnet-5-5), independent, 2026-09-28, and [current AA comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-claude-opus-5-5), independent, undated.
++
++**Qualifications that matter when using the HOLDS verdicts.**
++
++- H7 needs an effort pairing. Equal aggregate scores occur at Haiku `high` versus Luna `max`. Haiku's `medium`, `high`, `xhigh`, and `max` scores are 34, 38, 41, and 43. Treat “about level” as a rough class comparison. [AA Haiku release results](https://artificialanalysis.ai/models/releases/claude-haiku-5-5), independent, undated.
++- Haiku costs exclude its surcharge and remain provisional. Adding that charge cannot reverse C6, holding Sol's estimate fixed. H10's “often” is supported by benchmark averages, not a measured task frequency. [AA Haiku analysis](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07.
++- The Sonnet `medium` default is specifically Claude Code behavior. The API defaults Sonnet to `high`. These are compatible facts, not contradictory documentation. [API effort documentation](https://platform.claude.com/docs/en/build-with-claude/effort), vendor, undated.
++- L6 describes a relative pricing benefit, not a universal winner. For 300K uncached input tokens and 10K output tokens, standard-rate arithmetic gives Sol 6.1 $1.35, Sonnet $0.70, Opus $1.40, and Fable $3.50. Even beyond the threshold, larger Claude models do not all beat Sol. Real runs also differ in tokenization, generated tokens, caching, and retries. Calculation from [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing) and [Sol documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol), vendor, undated. Prefer: “Long inputs improve the larger Claudes' relative pricing; compare the specific models and cache mix.”
++- Benchmark cost per task is not cost per successful completion. The draft's general definition of getting work done should not imply that the quoted averages have been normalized by success rate. [AA methodology explanation](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated.
++
++**Ratings.** I have not assigned verdicts to the depth, execution, or cost ratings. No scoped rating is clearly disproved at the recommended routine effort. Haiku's “lowest” cost category becomes misleading if readers carry it to `max` or long contexts, which the row already warns about. Identical execution ratings for Haiku and Luna hide their opposite terminal/SaaS strengths, but a coarse rating is not inherently wrong. The research supports naming the effort and workload rather than changing the numeric scores on this evidence alone.
++
++**Material to remove from the shipped draft.** The Haiku sentence “Newly released, so this placement rests on thin early evidence” explicitly describes the evidence behind the document. Remove that sentence under the brief's rule. The release date is independently verifiable, but “thin” describes research confidence rather than model behavior. I found no named sources, named studies, “this used to say” history, or explicit notes about honesty, evaluation gaming, outages, or silent substitution anywhere in the supplied draft. The warning about returning no visible output is a runtime-behavior warning, not an outage or substitution claim. Its factual verification was outside the changed scope.
++
++**Source concentration and access limits.** Almost all independent performance and cost verdicts rest on one evaluator, Artificial Analysis. Its many model and comparison URLs are not independent replications of one another. Vendor documents are the only support used for exact CLI defaults, product availability, and several workload recommendations. The launch page's customer quotations were not counted as separate independent sources. No live API calls or independent benchmark runs were performed.
++
++Web search worked. Some direct page opens failed, including the Haiku overview, its initially attempted prompting URL, AA's Haiku article and German variant, and a Haiku-medium/Luna-medium comparison URL. The English AA article, official overview, and correct prompting page were subsequently retrieved through working links. The German page and medium/medium comparison were not recovered or relied on. The draft was not edited.
+
+exec
+/usr/bin/bash -lc "python - <<'PY'
+from pathlib import Path
+report_path = Path('/tmp/verify.XkpL/gpt-6-astra/verification.md')
+report = report_path.read_text()
+rows = [line for line in report.splitlines() if line.startswith('| ')][2:]
+assert len(rows) == 50
+assert chr(0x2014) not in report
+assert report.startswith('Verifier model: "'`gpt-6-astra`.'"')
+assert all(any(verdict in row for verdict in ['**HOLDS**', '**FAILS**', '**UNSUPPORTED**', '**STALE**']) for row in rows)
+assert all('https://' in row for row in rows)
+print('Verified: 50 cited verdicts, model ID at top, no em dashes.')
+print(report_path.resolve())
+PY" in /tmp/verify.XkpL/gpt-6-astra
+ succeeded in 0ms:
+Verified: 50 cited verdicts, model ID at top, no em dashes.
+/tmp/verify.XkpL/gpt-6-astra/verification.md
+
+diff --git a/verification.md b/verification.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..4d837284b47dffe0b3cd44f5dfb2e7791db1cbb9
+--- /dev/null
++++ b/verification.md
+@@ -0,0 +1,76 @@
++Verifier model: `gpt-6-astra`. Verification date: 2026-10-08.
++
++| Claim in the requested scope | Verdict | Source and supporting evidence |
++| --- | --- | --- |
++| H1. `claude-haiku-5-5` is a current, usable model ID, including in Claude Code. | **HOLDS** | [Model lifecycle](https://platform.claude.com/docs/en/about-claude/model-deprecations), vendor, undated: Active. [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: explicitly documents selecting this ID. |
++| H2. Haiku 5.5 is the cheap Claude. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated: lowest listed Claude input/output rates, including its higher context tier. This establishes token prices, not every task's final bill. |
++| H3. Haiku 5.5 is intended for extraction and classification. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated: both are stated use cases. Vendor positioning only. |
++| H4. Haiku 5.5 is intended for summaries. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: explicitly identifies summarization. Vendor positioning only. |
++| H5. Haiku 5.5 is usable for triage. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: includes Asana's bug-triage testing. Customer testimony selected and published by the vendor, not independent replication. |
++| H6. Small, well-specified code edits are a reasonable Haiku workload. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: supports agentic coding and describes verification needs. This supports the recommendation's premise, not guaranteed success. |
++| H7. Haiku is about level with GPT-6 Luna overall. | **HOLDS** | [AA comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna), independent, undated: Haiku `high` and Luna `max` both score 38. Effort must be specified: [both at max](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna) score 43 and 38. |
++| H8. Haiku beats Luna on terminal tasks at `high` and above. | **HOLDS** | AA's [high](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna), [xhigh](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-xhigh-vs-gpt-6-luna), and [max](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna) comparisons, independent, undated: Terminal-Bench 4.0 scores 22%, 29%, 33%, versus Luna `max` at 13%. |
++| H9. Haiku is behind Luna on tool-driven workflows as a general model characteristic. | **UNSUPPORTED** | [AA Haiku report](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07: provisional SaaS evidence only. See details. |
++| H10. Haiku often costs more per task than Luna because it generates more tokens. | **HOLDS** | AA [high comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna) and [max comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna), independent, undated: 55K versus 50K output tokens and $0.08 versus $0.07 at Haiku `high`/Luna `max`; 162K versus 50K and $0.21 versus $0.07 at `max`/`max`. These are weighted benchmark averages. |
++| H11. `medium` is a supported starting point for routine Haiku work. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: recommends starting at `medium` for most work. Only vendor guidance supports the precise recommendation. |
++| H12. `high` suits longer Haiku tool/agent sequences. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: recommends `high` for longer agent tasks. [AA high versus medium](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-claude-haiku-5-5-medium), independent, undated: terminal and SaaS scores improve. |
++| H13. Beyond `high`, Haiku token consumption climbs steeply, the stated reason to consider Sol or Sonnet instead. | **HOLDS** | AA [high](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna), [xhigh](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-xhigh-vs-gpt-6-luna), and [max](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna), independent, undated: 55K, 89K, 162K output tokens per task. Escalation itself is advice, not a factual verdict. |
++| H14. Haiku prompts exceeding 100K tokens have 5x token rates. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated: input/output rise from $0.10/$0.50 to $0.50/$2.50 per million. |
++| H15. A growing session transcript can cross that threshold. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: Haiku defaults to compaction around 967K. Therefore 100K can be crossed well before automatic compaction. This is an inference from documented behavior. |
++| H16. Haiku 5.5 is newly released. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: released the day before this review. |
++| S1. Sonnet 5.5 costs about the same per task as Opus 5.5 at `max`. | **HOLDS** | [AA current comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-claude-opus-5-5), independent, undated: $5.46 versus $5.98, approximately 9% less. “About the same” is a defensible approximation. |
++| S2. The alternative “or more at max” reflects the current aggregate Sonnet/Opus comparison. | **STALE** | [AA Sonnet launch analysis](https://artificialanalysis.ai/articles/claude-sonnet-5-5), independent, 2026-09-28, reported Sonnet at $7.60. The [current comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-claude-opus-5-5) puts it below Opus. Details below. |
++| N1. The cheap-work starting picks, Haiku 5.5 and GPT-6 Luna, have a factual basis. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07, and [OpenAI deployment guide](https://developers.openai.com/api/docs/guides/deployment-checklist), vendor, undated: both target efficient repetitive work. Exact suitability is advice and needs task validation. |
++| E1. Claude's `--effort` and Codex's `model_reasoning_effort` are real controls. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config) and [Codex configuration](https://learn.chatgpt.com/docs/config-file/config-reference), both vendor, undated: both controls are documented. |
++| E2. Effort materially changes capability and cost, supporting tuning effort before changing models. | **HOLDS** | [AA Haiku effort comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-claude-haiku-5-5-medium), independent, undated: `medium` to `max` changes score 34 to 43 and provisional cost $0.05 to $0.21. “Comparable to model choice” is qualitative, not a universal equivalence. |
++| E3. The reason to avoid routinely maximizing effort is higher spend for sometimes small gains. | **HOLDS** | [AA Haiku analysis](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07: `xhigh` to `max` adds two index points with about 1.8x output tokens. The claim that `max` is “seldom worth it” remains advice. |
++| E4. Opus 5.5 defaults to `medium` in Claude Code. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: explicit default. Vendor-only support. |
++| E5. Sonnet 5.5 defaults to `medium` in Claude Code. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: explicit default. Its API default is a separate setting. Vendor-only support. |
++| E6. Haiku 5.5 defaults to `medium` in Claude Code. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: explicit for both API and Claude Code. Vendor-only support. |
++| E7. Fable 5.1 defaults to `high` in Claude Code. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: `high` applies except for the enumerated models, which do not include Fable. Vendor-only support. |
++| C1. Cost per task depends on actual token consumption, not only the rate card. | **HOLDS** | [AA cost methodology on its comparison page](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated: combines token categories and their rates, weighted by evaluation. It measures cost per attempted benchmark task, not necessarily per successful task. |
++| C2. Opus 5.5 at `max` emits within roughly 4x to 10x Astra's output tokens. | **HOLDS** | [AA Opus/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-opus-5-5-vs-gpt-6-astra), independent, undated: 119K versus 27K per task, about 4.4x, both `max`. |
++| C3. Sonnet 5.5 at `max` emits within roughly 4x to 10x Astra's output tokens. | **HOLDS** | [AA Sonnet/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-gpt-6-astra), independent, undated: 197K versus 27K, about 7.3x, both `max`. |
++| C4. Astra costs less per task than Opus 5.5 despite higher token prices. | **HOLDS** | [AA Opus/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-opus-5-5-vs-gpt-6-astra), independent, undated: $3.26 versus $5.98, both `max`. Benchmark-specific, not an assurance about arbitrary workloads. |
++| C5. Astra costs less per task than Sonnet 5.5 despite higher token prices. | **HOLDS** | [AA Sonnet/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-gpt-6-astra), independent, undated: $3.26 versus $5.46, both `max`, using the reduced Sonnet cache-read rate. |
++| C6. Haiku `max` costs more per task than GPT-6.1 Sol `low`. | **HOLDS** | [AA comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated: $0.21 versus $0.13. Haiku's omitted surcharge makes this a conservative directional comparison, not a final bill estimate. |
++| C7. Haiku `max` and Sol 6.1 `low` have about equal quality. | **HOLDS** | [AA comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated: aggregate scores 43 and 42. Individual tasks differ substantially. |
++| P1. Fable 5.1 costs $10/$50 per million input/output tokens. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated. |
++| P2. Astra costs $10/$50 per million input/output tokens. | **HOLDS** | [Astra model documentation](https://developers.openai.com/api/docs/models/gpt-6-astra), vendor, undated. |
++| P3. Opus 5.5 costs $4/$20 per million input/output tokens. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated. |
++| P4. Sonnet 5.5 costs $2/$10 per million input/output tokens. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated. |
++| P5. GPT-6.1 Sol costs $2/$10 per million input/output tokens. | **HOLDS** | [Sol 6.1 model documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol), vendor, undated. |
++| P6. Haiku 5.5 costs $0.10/$0.50 up to 100K input tokens, then $0.50/$2.50. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated. The threshold is strictly above 100,000. |
++| P7. GPT-6 Luna costs $0.10/$0.50 per million input/output tokens. | **HOLDS** | [Luna model documentation](https://developers.openai.com/api/docs/models/gpt-6-luna), vendor, undated. |
++| P8. Sonnet cache reads cost $0.10 per million, reducing costs when a large prefix is reused. | **HOLDS** | [Haiku launch and Sonnet price update](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: announces the halving from $0.20. Actual savings depend on cache hits. |
++| L1. Astra bills the full request at 2x input and 1.5x output above 272K input tokens. | **HOLDS** | [Astra documentation](https://developers.openai.com/api/docs/models/gpt-6-astra), vendor, undated: explicit full-request rule. Cache rates also double. |
++| L2. GPT-6.1 Sol has the same full-request surcharge and threshold. | **HOLDS** | [Sol 6.1 documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol), vendor, undated. |
++| L3. GPT-6 Luna has the same full-request surcharge and threshold. | **HOLDS** | [Luna documentation](https://developers.openai.com/api/docs/models/gpt-6-luna), vendor, undated. |
++| L4. The listed larger Claude models have 1M context and no long-input rate increase. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated: standard rates across 1M for current models other than Haiku 5.5. |
++| L5. Haiku's higher tier applies to the request, including output, rather than only excess input tokens. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated: both input and output rates are selected by total prompt length. Cache categories also rise 5x. |
++| L6. Very large contexts favor the larger Claudes on cost. | **HOLDS** | Inference from [Claude rates](https://platform.claude.com/docs/en/about-claude/pricing) and the OpenAI model pages above, vendor, undated: absence of a surcharge improves their relative position. This does not establish that every larger Claude is cheaper than every Codex model. See qualification below. |
++| L7. Large contexts favor Luna over Haiku on cost. | **HOLDS** | Inference from [Luna](https://developers.openai.com/api/docs/models/gpt-6-luna) and [Haiku](https://platform.claude.com/docs/en/models/haiku-5-5/overview) rates, vendor, undated: above 272K, Luna is $0.20/$0.75 versus Haiku's $0.50/$2.50. This compares equal token quantities. |
++| X1. Haiku 4.5 remains callable. | **HOLDS** | [Claude lifecycle](https://platform.claude.com/docs/en/about-claude/model-deprecations), vendor, undated: `claude-haiku-4-5-20251001` remains Active. “Not sooner than October 15” is not a scheduled retirement. |
++| X2. Haiku 4.5 is superseded by a better and/or cheaper listed same-vendor model. | **HOLDS** | [AA release comparison](https://artificialanalysis.ai/models/releases/comparisons/claude-haiku-5-5-vs-claude-4-5-haiku), independent, undated: Haiku 5.5 scores 43 versus 17 at the top measured settings. [Launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: lower prices in both prompt tiers. Superseded does not mean retired or universally superior. |
++
++All undated sources were checked on 2026-10-08. Their publication dates are not exposed, so no date has been inferred from a crawl timestamp. Vendor pricing citations establish published standard API rates, not independently audited invoices. The repeated rates in the cost-to-task bullet are covered by P1 through P7. Other rows and unchanged recommendations are outside the brief's factual scope.
++
++**H9: narrow or remove the tool-workflow claim.** Haiku scored 35% versus Luna's 53% on AutomationBench-AA. The evaluator attributes an understatement to a pre-release refusal problem and plans a rerun. This cannot establish general tool-workflow inferiority. Remove the generalization or narrow it to a provisional SaaS-workflow preference. [AA Haiku report](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07.
++
++**S2: update the directional comparison.** The September 28 analysis reported $7.60 for Sonnet `max`, above Opus's $5.98. The current comparison uses Sonnet's $0.10 cache reads and reports $5.46 against $5.98. The draft's “about the same” survives, but “or more” should not present the older aggregate ranking as current. A precise replacement is: “At max, its measured task cost is close to Opus 5.5.” Specific workloads can still reverse the ordering. [Historical AA analysis](https://artificialanalysis.ai/articles/claude-sonnet-5-5), independent, 2026-09-28, and [current AA comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-claude-opus-5-5), independent, undated.
++
++**Qualifications that matter when using the HOLDS verdicts.**
++
++- H7 needs an effort pairing. Equal aggregate scores occur at Haiku `high` versus Luna `max`. Haiku's `medium`, `high`, `xhigh`, and `max` scores are 34, 38, 41, and 43. Treat “about level” as a rough class comparison. [AA Haiku release results](https://artificialanalysis.ai/models/releases/claude-haiku-5-5), independent, undated.
++- Haiku costs exclude its surcharge and remain provisional. Adding that charge cannot reverse C6, holding Sol's estimate fixed. H10's “often” is supported by benchmark averages, not a measured task frequency. [AA Haiku analysis](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07.
++- The Sonnet `medium` default is specifically Claude Code behavior. The API defaults Sonnet to `high`. These are compatible facts, not contradictory documentation. [API effort documentation](https://platform.claude.com/docs/en/build-with-claude/effort), vendor, undated.
++- L6 describes a relative pricing benefit, not a universal winner. For 300K uncached input tokens and 10K output tokens, standard-rate arithmetic gives Sol 6.1 $1.35, Sonnet $0.70, Opus $1.40, and Fable $3.50. Even beyond the threshold, larger Claude models do not all beat Sol. Real runs also differ in tokenization, generated tokens, caching, and retries. Calculation from [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing) and [Sol documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol), vendor, undated. Prefer: “Long inputs improve the larger Claudes' relative pricing; compare the specific models and cache mix.”
++- Benchmark cost per task is not cost per successful completion. The draft's general definition of getting work done should not imply that the quoted averages have been normalized by success rate. [AA methodology explanation](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated.
++
++**Ratings.** I have not assigned verdicts to the depth, execution, or cost ratings. No scoped rating is clearly disproved at the recommended routine effort. Haiku's “lowest” cost category becomes misleading if readers carry it to `max` or long contexts, which the row already warns about. Identical execution ratings for Haiku and Luna hide their opposite terminal/SaaS strengths, but a coarse rating is not inherently wrong. The research supports naming the effort and workload rather than changing the numeric scores on this evidence alone.
++
++**Material to remove from the shipped draft.** The Haiku sentence “Newly released, so this placement rests on thin early evidence” explicitly describes the evidence behind the document. Remove that sentence under the brief's rule. The release date is independently verifiable, but “thin” describes research confidence rather than model behavior. I found no named sources, named studies, “this used to say” history, or explicit notes about honesty, evaluation gaming, outages, or silent substitution anywhere in the supplied draft. The warning about returning no visible output is a runtime-behavior warning, not an outage or substitution claim. Its factual verification was outside the changed scope.
++
++**Source concentration and access limits.** Almost all independent performance and cost verdicts rest on one evaluator, Artificial Analysis. Its many model and comparison URLs are not independent replications of one another. Vendor documents are the only support used for exact CLI defaults, product availability, and several workload recommendations. The launch page's customer quotations were not counted as separate independent sources. No live API calls or independent benchmark runs were performed.
++
++Web search worked. Some direct page opens failed, including the Haiku overview, its initially attempted prompting URL, AA's Haiku article and German variant, and a Haiku-medium/Luna-medium comparison URL. The English AA article, official overview, and correct prompting page were subsequently retrieved through working links. The German page and medium/medium comparison were not recovered or relied on. The draft was not edited.
+
+codex
+Created [verification.md](/tmp/verify.XkpL/gpt-6-astra/verification.md) with 50 cited claim verdicts.
+
+Most claims hold. Key flags concern Sonnet’s outdated cost direction, Haiku’s broad workflow comparison, and provisional benchmark costs. The draft remains unchanged.
+diff --git a/verification.md b/verification.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..4d837284b47dffe0b3cd44f5dfb2e7791db1cbb9
+--- /dev/null
++++ b/verification.md
+@@ -0,0 +1,76 @@
++Verifier model: `gpt-6-astra`. Verification date: 2026-10-08.
++
++| Claim in the requested scope | Verdict | Source and supporting evidence |
++| --- | --- | --- |
++| H1. `claude-haiku-5-5` is a current, usable model ID, including in Claude Code. | **HOLDS** | [Model lifecycle](https://platform.claude.com/docs/en/about-claude/model-deprecations), vendor, undated: Active. [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: explicitly documents selecting this ID. |
++| H2. Haiku 5.5 is the cheap Claude. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated: lowest listed Claude input/output rates, including its higher context tier. This establishes token prices, not every task's final bill. |
++| H3. Haiku 5.5 is intended for extraction and classification. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated: both are stated use cases. Vendor positioning only. |
++| H4. Haiku 5.5 is intended for summaries. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: explicitly identifies summarization. Vendor positioning only. |
++| H5. Haiku 5.5 is usable for triage. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: includes Asana's bug-triage testing. Customer testimony selected and published by the vendor, not independent replication. |
++| H6. Small, well-specified code edits are a reasonable Haiku workload. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: supports agentic coding and describes verification needs. This supports the recommendation's premise, not guaranteed success. |
++| H7. Haiku is about level with GPT-6 Luna overall. | **HOLDS** | [AA comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna), independent, undated: Haiku `high` and Luna `max` both score 38. Effort must be specified: [both at max](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna) score 43 and 38. |
++| H8. Haiku beats Luna on terminal tasks at `high` and above. | **HOLDS** | AA's [high](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna), [xhigh](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-xhigh-vs-gpt-6-luna), and [max](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna) comparisons, independent, undated: Terminal-Bench 4.0 scores 22%, 29%, 33%, versus Luna `max` at 13%. |
++| H9. Haiku is behind Luna on tool-driven workflows as a general model characteristic. | **UNSUPPORTED** | [AA Haiku report](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07: provisional SaaS evidence only. See details. |
++| H10. Haiku often costs more per task than Luna because it generates more tokens. | **HOLDS** | AA [high comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna) and [max comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna), independent, undated: 55K versus 50K output tokens and $0.08 versus $0.07 at Haiku `high`/Luna `max`; 162K versus 50K and $0.21 versus $0.07 at `max`/`max`. These are weighted benchmark averages. |
++| H11. `medium` is a supported starting point for routine Haiku work. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: recommends starting at `medium` for most work. Only vendor guidance supports the precise recommendation. |
++| H12. `high` suits longer Haiku tool/agent sequences. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: recommends `high` for longer agent tasks. [AA high versus medium](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-claude-haiku-5-5-medium), independent, undated: terminal and SaaS scores improve. |
++| H13. Beyond `high`, Haiku token consumption climbs steeply, the stated reason to consider Sol or Sonnet instead. | **HOLDS** | AA [high](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-high-vs-gpt-6-luna), [xhigh](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-xhigh-vs-gpt-6-luna), and [max](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna), independent, undated: 55K, 89K, 162K output tokens per task. Escalation itself is advice, not a factual verdict. |
++| H14. Haiku prompts exceeding 100K tokens have 5x token rates. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated: input/output rise from $0.10/$0.50 to $0.50/$2.50 per million. |
++| H15. A growing session transcript can cross that threshold. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: Haiku defaults to compaction around 967K. Therefore 100K can be crossed well before automatic compaction. This is an inference from documented behavior. |
++| H16. Haiku 5.5 is newly released. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: released the day before this review. |
++| S1. Sonnet 5.5 costs about the same per task as Opus 5.5 at `max`. | **HOLDS** | [AA current comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-claude-opus-5-5), independent, undated: $5.46 versus $5.98, approximately 9% less. “About the same” is a defensible approximation. |
++| S2. The alternative “or more at max” reflects the current aggregate Sonnet/Opus comparison. | **STALE** | [AA Sonnet launch analysis](https://artificialanalysis.ai/articles/claude-sonnet-5-5), independent, 2026-09-28, reported Sonnet at $7.60. The [current comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-claude-opus-5-5) puts it below Opus. Details below. |
++| N1. The cheap-work starting picks, Haiku 5.5 and GPT-6 Luna, have a factual basis. | **HOLDS** | [Haiku launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07, and [OpenAI deployment guide](https://developers.openai.com/api/docs/guides/deployment-checklist), vendor, undated: both target efficient repetitive work. Exact suitability is advice and needs task validation. |
++| E1. Claude's `--effort` and Codex's `model_reasoning_effort` are real controls. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config) and [Codex configuration](https://learn.chatgpt.com/docs/config-file/config-reference), both vendor, undated: both controls are documented. |
++| E2. Effort materially changes capability and cost, supporting tuning effort before changing models. | **HOLDS** | [AA Haiku effort comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-claude-haiku-5-5-medium), independent, undated: `medium` to `max` changes score 34 to 43 and provisional cost $0.05 to $0.21. “Comparable to model choice” is qualitative, not a universal equivalence. |
++| E3. The reason to avoid routinely maximizing effort is higher spend for sometimes small gains. | **HOLDS** | [AA Haiku analysis](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07: `xhigh` to `max` adds two index points with about 1.8x output tokens. The claim that `max` is “seldom worth it” remains advice. |
++| E4. Opus 5.5 defaults to `medium` in Claude Code. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: explicit default. Vendor-only support. |
++| E5. Sonnet 5.5 defaults to `medium` in Claude Code. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: explicit default. Its API default is a separate setting. Vendor-only support. |
++| E6. Haiku 5.5 defaults to `medium` in Claude Code. | **HOLDS** | [Haiku prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5), vendor, undated: explicit for both API and Claude Code. Vendor-only support. |
++| E7. Fable 5.1 defaults to `high` in Claude Code. | **HOLDS** | [Claude Code configuration](https://code.claude.com/docs/en/model-config), vendor, undated: `high` applies except for the enumerated models, which do not include Fable. Vendor-only support. |
++| C1. Cost per task depends on actual token consumption, not only the rate card. | **HOLDS** | [AA cost methodology on its comparison page](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated: combines token categories and their rates, weighted by evaluation. It measures cost per attempted benchmark task, not necessarily per successful task. |
++| C2. Opus 5.5 at `max` emits within roughly 4x to 10x Astra's output tokens. | **HOLDS** | [AA Opus/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-opus-5-5-vs-gpt-6-astra), independent, undated: 119K versus 27K per task, about 4.4x, both `max`. |
++| C3. Sonnet 5.5 at `max` emits within roughly 4x to 10x Astra's output tokens. | **HOLDS** | [AA Sonnet/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-gpt-6-astra), independent, undated: 197K versus 27K, about 7.3x, both `max`. |
++| C4. Astra costs less per task than Opus 5.5 despite higher token prices. | **HOLDS** | [AA Opus/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-opus-5-5-vs-gpt-6-astra), independent, undated: $3.26 versus $5.98, both `max`. Benchmark-specific, not an assurance about arbitrary workloads. |
++| C5. Astra costs less per task than Sonnet 5.5 despite higher token prices. | **HOLDS** | [AA Sonnet/Astra comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-gpt-6-astra), independent, undated: $3.26 versus $5.46, both `max`, using the reduced Sonnet cache-read rate. |
++| C6. Haiku `max` costs more per task than GPT-6.1 Sol `low`. | **HOLDS** | [AA comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated: $0.21 versus $0.13. Haiku's omitted surcharge makes this a conservative directional comparison, not a final bill estimate. |
++| C7. Haiku `max` and Sol 6.1 `low` have about equal quality. | **HOLDS** | [AA comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated: aggregate scores 43 and 42. Individual tasks differ substantially. |
++| P1. Fable 5.1 costs $10/$50 per million input/output tokens. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated. |
++| P2. Astra costs $10/$50 per million input/output tokens. | **HOLDS** | [Astra model documentation](https://developers.openai.com/api/docs/models/gpt-6-astra), vendor, undated. |
++| P3. Opus 5.5 costs $4/$20 per million input/output tokens. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated. |
++| P4. Sonnet 5.5 costs $2/$10 per million input/output tokens. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated. |
++| P5. GPT-6.1 Sol costs $2/$10 per million input/output tokens. | **HOLDS** | [Sol 6.1 model documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol), vendor, undated. |
++| P6. Haiku 5.5 costs $0.10/$0.50 up to 100K input tokens, then $0.50/$2.50. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated. The threshold is strictly above 100,000. |
++| P7. GPT-6 Luna costs $0.10/$0.50 per million input/output tokens. | **HOLDS** | [Luna model documentation](https://developers.openai.com/api/docs/models/gpt-6-luna), vendor, undated. |
++| P8. Sonnet cache reads cost $0.10 per million, reducing costs when a large prefix is reused. | **HOLDS** | [Haiku launch and Sonnet price update](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: announces the halving from $0.20. Actual savings depend on cache hits. |
++| L1. Astra bills the full request at 2x input and 1.5x output above 272K input tokens. | **HOLDS** | [Astra documentation](https://developers.openai.com/api/docs/models/gpt-6-astra), vendor, undated: explicit full-request rule. Cache rates also double. |
++| L2. GPT-6.1 Sol has the same full-request surcharge and threshold. | **HOLDS** | [Sol 6.1 documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol), vendor, undated. |
++| L3. GPT-6 Luna has the same full-request surcharge and threshold. | **HOLDS** | [Luna documentation](https://developers.openai.com/api/docs/models/gpt-6-luna), vendor, undated. |
++| L4. The listed larger Claude models have 1M context and no long-input rate increase. | **HOLDS** | [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing), vendor, undated: standard rates across 1M for current models other than Haiku 5.5. |
++| L5. Haiku's higher tier applies to the request, including output, rather than only excess input tokens. | **HOLDS** | [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview), vendor, undated: both input and output rates are selected by total prompt length. Cache categories also rise 5x. |
++| L6. Very large contexts favor the larger Claudes on cost. | **HOLDS** | Inference from [Claude rates](https://platform.claude.com/docs/en/about-claude/pricing) and the OpenAI model pages above, vendor, undated: absence of a surcharge improves their relative position. This does not establish that every larger Claude is cheaper than every Codex model. See qualification below. |
++| L7. Large contexts favor Luna over Haiku on cost. | **HOLDS** | Inference from [Luna](https://developers.openai.com/api/docs/models/gpt-6-luna) and [Haiku](https://platform.claude.com/docs/en/models/haiku-5-5/overview) rates, vendor, undated: above 272K, Luna is $0.20/$0.75 versus Haiku's $0.50/$2.50. This compares equal token quantities. |
++| X1. Haiku 4.5 remains callable. | **HOLDS** | [Claude lifecycle](https://platform.claude.com/docs/en/about-claude/model-deprecations), vendor, undated: `claude-haiku-4-5-20251001` remains Active. “Not sooner than October 15” is not a scheduled retirement. |
++| X2. Haiku 4.5 is superseded by a better and/or cheaper listed same-vendor model. | **HOLDS** | [AA release comparison](https://artificialanalysis.ai/models/releases/comparisons/claude-haiku-5-5-vs-claude-4-5-haiku), independent, undated: Haiku 5.5 scores 43 versus 17 at the top measured settings. [Launch](https://www.anthropic.com/claude-haiku-5-5), vendor, 2026-10-07: lower prices in both prompt tiers. Superseded does not mean retired or universally superior. |
++
++All undated sources were checked on 2026-10-08. Their publication dates are not exposed, so no date has been inferred from a crawl timestamp. Vendor pricing citations establish published standard API rates, not independently audited invoices. The repeated rates in the cost-to-task bullet are covered by P1 through P7. Other rows and unchanged recommendations are outside the brief's factual scope.
++
++**H9: narrow or remove the tool-workflow claim.** Haiku scored 35% versus Luna's 53% on AutomationBench-AA. The evaluator attributes an understatement to a pre-release refusal problem and plans a rerun. This cannot establish general tool-workflow inferiority. Remove the generalization or narrow it to a provisional SaaS-workflow preference. [AA Haiku report](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07.
++
++**S2: update the directional comparison.** The September 28 analysis reported $7.60 for Sonnet `max`, above Opus's $5.98. The current comparison uses Sonnet's $0.10 cache reads and reports $5.46 against $5.98. The draft's “about the same” survives, but “or more” should not present the older aggregate ranking as current. A precise replacement is: “At max, its measured task cost is close to Opus 5.5.” Specific workloads can still reverse the ordering. [Historical AA analysis](https://artificialanalysis.ai/articles/claude-sonnet-5-5), independent, 2026-09-28, and [current AA comparison](https://artificialanalysis.ai/models/comparisons/claude-sonnet-5-5-vs-claude-opus-5-5), independent, undated.
++
++**Qualifications that matter when using the HOLDS verdicts.**
++
++- H7 needs an effort pairing. Equal aggregate scores occur at Haiku `high` versus Luna `max`. Haiku's `medium`, `high`, `xhigh`, and `max` scores are 34, 38, 41, and 43. Treat “about level” as a rough class comparison. [AA Haiku release results](https://artificialanalysis.ai/models/releases/claude-haiku-5-5), independent, undated.
++- Haiku costs exclude its surcharge and remain provisional. Adding that charge cannot reverse C6, holding Sol's estimate fixed. H10's “often” is supported by benchmark averages, not a measured task frequency. [AA Haiku analysis](https://artificialanalysis.ai/articles/claude-haiku-5-5), independent, 2026-10-07.
++- The Sonnet `medium` default is specifically Claude Code behavior. The API defaults Sonnet to `high`. These are compatible facts, not contradictory documentation. [API effort documentation](https://platform.claude.com/docs/en/build-with-claude/effort), vendor, undated.
++- L6 describes a relative pricing benefit, not a universal winner. For 300K uncached input tokens and 10K output tokens, standard-rate arithmetic gives Sol 6.1 $1.35, Sonnet $0.70, Opus $1.40, and Fable $3.50. Even beyond the threshold, larger Claude models do not all beat Sol. Real runs also differ in tokenization, generated tokens, caching, and retries. Calculation from [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing) and [Sol documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol), vendor, undated. Prefer: “Long inputs improve the larger Claudes' relative pricing; compare the specific models and cache mix.”
++- Benchmark cost per task is not cost per successful completion. The draft's general definition of getting work done should not imply that the quoted averages have been normalized by success rate. [AA methodology explanation](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-1-sol-low), independent, undated.
++
++**Ratings.** I have not assigned verdicts to the depth, execution, or cost ratings. No scoped rating is clearly disproved at the recommended routine effort. Haiku's “lowest” cost category becomes misleading if readers carry it to `max` or long contexts, which the row already warns about. Identical execution ratings for Haiku and Luna hide their opposite terminal/SaaS strengths, but a coarse rating is not inherently wrong. The research supports naming the effort and workload rather than changing the numeric scores on this evidence alone.
++
++**Material to remove from the shipped draft.** The Haiku sentence “Newly released, so this placement rests on thin early evidence” explicitly describes the evidence behind the document. Remove that sentence under the brief's rule. The release date is independently verifiable, but “thin” describes research confidence rather than model behavior. I found no named sources, named studies, “this used to say” history, or explicit notes about honesty, evaluation gaming, outages, or silent substitution anywhere in the supplied draft. The warning about returning no visible output is a runtime-behavior warning, not an outage or substitution claim. Its factual verification was outside the changed scope.
++
++**Source concentration and access limits.** Almost all independent performance and cost verdicts rest on one evaluator, Artificial Analysis. Its many model and comparison URLs are not independent replications of one another. Vendor documents are the only support used for exact CLI defaults, product availability, and several workload recommendations. The launch page's customer quotations were not counted as separate independent sources. No live API calls or independent benchmark runs were performed.
++
++Web search worked. Some direct page opens failed, including the Haiku overview, its initially attempted prompting URL, AA's Haiku article and German variant, and a Haiku-medium/Luna-medium comparison URL. The English AA article, official overview, and correct prompting page were subsequently retrieved through working links. The German page and medium/medium comparison were not recovered or relied on. The draft was not edited.
+
+tokens used
+165,589
+Created [verification.md](/tmp/verify.XkpL/gpt-6-astra/verification.md) with 50 cited claim verdicts.
+
+Most claims hold. Key flags concern Sonnet’s outdated cost direction, Haiku’s broad workflow comparison, and provisional benchmark costs. The draft remains unchanged.

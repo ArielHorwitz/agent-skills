@@ -1,0 +1,780 @@
+Reading prompt from stdin...
+OpenAI Codex v0.159.3
+--------
+workdir: /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: high
+reasoning summaries: none
+session id: 01a11b08-349a-7272-bf6e-de503958a81d
+--------
+user
+Follow /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/drift-brief.md. Write your report to /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/drift-models-gpt-6-1-sol.md.
+
+codex
+I’ll read the brief and relevant project instructions, then write the report to the requested path.
+
+exec
+/usr/bin/bash -lc 'cat /home/wiw/.agents/skills/casebook/SKILL.md' in /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7
+ succeeded in 0ms:
+---
+name: casebook
+description: >
+  Consult or work within the project's casebook (docs/casebook/), its durable
+  memory of cases: bounded units of work such as investigations, designs, and
+  features. Use whenever a case or the casebook is mentioned, when asked about
+  project history or why something is the way it is, when resuming earlier
+  work, or when substantial work is taking shape. When in doubt, load it.
+argument-hint: "Which case(s) to work on or look into"
+compatibility: Requires Python 3.11+ (uses the stdlib tomllib).
+---
+
+# Casebook
+
+A **casebook** (`docs/casebook/`) is a collection of cases. Each case is a
+bounded unit of work (investigation, brainstorm, feature, design, etc.). Each
+case is a subdirectory named `YYYY-MM-DD__hex/` holding a `case.toml` (metadata)
+and its files. `case.toml` is the tool's fixed schema — `title`, `status`,
+`keywords`, `created` — used for listing and discovery. Everything else in
+the directory is the case's actual content.
+
+This skill applies only where `docs/casebook/` exists. If the project has no
+casebook, say so in a sentence and carry on without it. Do not run
+`casebook init` or propose one unprompted: adopting a casebook is the user's
+decision.
+
+## The CLI
+
+The `casebook` CLI is `casebook.py`, in this skill's own directory (the
+directory containing this SKILL.md). Invoke it with `python3`, running from the
+**project root** so it can find `docs/casebook/` beneath the current directory:
+
+```
+python3 <this-skill-dir>/casebook.py <command> ...
+```
+
+Below, `casebook` is shorthand for that invocation.
+
+- `casebook list` — browse cases in the current working tree (run
+  `casebook list --help` for status/keyword filtering options). Add `-a` /
+  `--all-branches` to instead list committed cases on every local branch,
+  grouped by branch — the cross-branch discovery/divergence view (see
+  [Version control](#version-control)).
+- `casebook new` — create a case
+- `casebook init` — create `docs/casebook/` with a stub `agents.md` (run once
+  per project)
+
+## Plain invocation (no arguments)
+
+When the user invokes the `casebook` skill with no arguments, produce a
+succinct review of the casebook rather than opening any case — a status
+dashboard, not a deep-dive.
+
+- Run `casebook list --all-branches` (the full flag, for clarity) to survey
+  every case's `title`, `status`, and `keywords` across **all local branches**,
+  not just the current tree — a plain review is meant to cover the whole project,
+  wherever cases live. The output is grouped by branch and cases shared across
+  branches repeat; treat each case once. If the same case shows a different
+  `status` across branches, that divergence is itself an open thread worth a
+  mention. If there are no cases, say so and stop.
+- Classify each case as **relevant** (status other than `closed`-like, or among
+  the most recently created/closed) or **routine** (older, `closed`-like, no
+  open threads).
+- Set a total length budget for the whole review — think a handful of
+  sentences altogether, not a paragraph per case — and split it roughly 3:1
+  between relevant and routine cases. With only one or two cases, this budget
+  is moot — just give each its natural due.
+- For **relevant** cases: read `overview.md` and spend one to two sentences on
+  current state and any open thread. A case living only on another branch has
+  its `overview.md` there, not on disk here — read it with
+  `git show <branch>:<path>`, or lean on the metadata if that is enough.
+- For **routine** cases: use `case.toml` metadata only (title/keywords) — do
+  not open `overview.md` or other files. One short clause each, or fewer if
+  the budget is tight.
+- If the budget doesn't stretch to a clause per routine case, group them (e.g.
+  "plus 5 older closed cases on X/Y") rather than shrinking the relevant
+  cases' detail.
+- Close by noting that naming any case gets a deeper look, and that plain
+  `casebook list` narrows the view to the current branch's working tree.
+
+## Identifying cases
+
+The user may refer to a case explicitly (a full id or hex-prefix) or vaguely
+(e.g. "the hardening case"). You can use `casebook list` to discover which case
+or cases they mean, matching on id, title, and keywords.
+
+## Referring to cases
+
+In user-facing text (summaries, reviews, questions), refer to a case the way
+a colleague would — by a short descriptive handle, e.g. "the hardening case".
+Let context set the specificity: if several hardening-related cases are in
+play, "the reboot hardening case" disambiguates. Users almost certainly do
+*not* recognize cases by their date or hex ID, so the ID makes a poor primary
+reference. Append the hex in parentheses, e.g. "the hardening case (9f4f)".
+
+## When to work on a case
+
+Work on a case, whether updating an existing one or creating a new one, only
+when the user has authorized it. Reading a case is always free, but every write
+changes a durable, committed record that other sessions rely on.
+
+- **Updating an existing case** (`overview.md`, `case.toml`, or any other
+  file) is authorized when the user asked you to work within that case, a
+  handoff assigned you to it, or the user approved an update you proposed.
+- **Creating a case** is authorized only by an explicit request or approval
+  from the user. Never run `casebook new` on your own initiative.
+
+Absent authorization, suggest rather than act, and suggest proactively. When
+findings, decisions, or progress bear on an existing case, say so: "I think
+this begs an update to the hardening case's overview (9f4f). Want me to record
+it?" When the work in hand looks case-worthy, say so: "It sounds like this
+work should probably be recorded as a new case." Work is case-worthy when it
+will likely span sessions or several agents, or when its decisions, research
+findings, or process may be valuable later. Routine tasks that fit in one
+session and leave no decision worth explaining do not qualify. Make the
+suggestion once, at a natural breakpoint, and let the user decide. A declined
+suggestion is not repeated.
+
+Once the user authorizes work on a case, that authorization covers the case
+for the rest of the session: keep its files current as the work evolves
+without asking again for each edit.
+
+## Working within a case
+
+When working on a case, first orient yourself: read `overview.md` (if present)
+and any other files relevant to the task to understand where the case stands
+before acting. Then follow these conventions.
+
+- **`case.toml` is the tool's interface, not the case's content.** Keep its
+  fields current as the work evolves (edit the file directly), but record the
+  actual analysis, decisions, and reports in separate files.
+- **`title`** is the primary way cases are discovered — make it capture the full
+  scope so anyone can find the case by title alone. New cases default to
+  "Unnamed case"; rename early and refine as the scope becomes clearer.
+- **`status`** is usually `open` or `closed`, though any other value (e.g.
+  `blocked`, `paused`) is also acceptable. Keep **`keywords`** updated to help
+  future sessions find the case.
+- The case's files (beyond `case.toml`) hold its content — analysis, reports,
+  decisions, designs, transcripts, etc. Code belongs in the source tree, not the
+  case directory.
+- Use **highly descriptive filenames** so a file's purpose is clear from its
+  name alone — prefer `websocket-reconnection-backoff-strategy.md` over
+  `notes.md` or `report.md`.
+- **`overview.md`** is a living summary of the case — keep it updated as the case
+  evolves so it stays useful to future sessions.
+
+## Version control
+
+The casebook lives in the repo, so a case is a **branch-local mutable
+document**. `casebook list` sees only the current working tree, so a case you
+cannot find may live on another branch rather than not exist —
+`casebook list --all-branches` lists committed cases on every local branch
+(grouped by branch) to find it and to spot divergence. That cross-branch view reads
+**committed tips only**, so uncommitted work is invisible to it; commit a case,
+or a status change, to make it visible across branches.
+
+**A case usually lives in one branch** — created in a worktree, worked, closed
+there, then merged to the trunk in final form. Such a case has no divergence
+risk and merges as a pure addition. Close it (finish the work, update files, set
+`status = "closed"`), **commit the closing edit, then merge**, so the trunk
+receives an already-closed case; merging first lands it open until a later commit
+closes it.
+
+**VCS delivery is plumbing, not case work** — for the single-branch case,
+committing and merging carry the finished case but are not tasks within it, so
+don't list "merge back", "open a PR", and the like as open items (they define the
+case's completion to include an act that happens after it is done). Two
+exceptions, where commit/merge *is* case activity: a case whose **subject** is
+the commit/branch/merge/release, and a **multi-branch case**, which may commit
+and merge while still open — those are mid-lifecycle syncs, so merge back
+promptly to keep the trunk's copy fresh.
+
+**Staleness vs. divergence.** Advancing an open case on a branch leaves the
+trunk's copy stale — ordinary branching, fixed by merging back. The real hazard
+is **concurrent mutation**: two live branches advancing one case conflict in
+`overview.md` and `case.toml` (the shared single-points; per-topic files rarely
+collide). Keep a case's active work on **one branch at a time**; if parallel work
+is unavoidable, confine edits to disjoint per-topic files.
+
+## Consulting past cases
+
+The casebook includes past cases that may provide historical context for design
+decisions, prior investigations, or previously considered approaches. When
+asked why something is the way it is, or whether something was looked into
+before, check the casebook before answering from the code alone. Use
+`casebook list` to browse, then read a case's files for reference — you can
+consult a case without taking over its work. Cite the case when it informs an
+answer. Cases are history, not truth: the code and the current project state
+take precedence over anything a case recorded, and a closed case may be stale.
+
+exec
+/usr/bin/bash -lc 'cat /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/drift-brief.md' in /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7
+ succeeded in 0ms:
+# Handoff: model drift since 2026-10-04
+
+You are one of two independent researchers (different vendors). Use live web
+search; if search fails, say so at the top and stop. Today is 2026-10-08.
+
+Scope: Anthropic Claude models and OpenAI GPT/Codex models usable through the
+`claude` and `codex` CLIs. Baseline roster (2026-10-04): claude-opus-5-5,
+claude-sonnet-5-5, claude-fable-5-1, claude-haiku-4-5, gpt-6-astra,
+gpt-6.1-sol, gpt-6-luna (plus still-callable older models: claude-opus-5,
+claude-opus-4-8, claude-fable-5, claude-sonnet-5, gpt-6-sol, gpt-5.6-sol,
+gpt-5.6-terra, gpt-5.6-luna). The codex CLI's local model list (fetched
+2026-10-08) shows: gpt-6.1-sol, gpt-6-astra, gpt-6-sol, gpt-6-luna,
+gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna, gpt-5.5. The claude CLI has no model
+listing. We already know Claude Haiku 5.5 (`claude-haiku-5-5`) was released
+after the baseline.
+
+Find, for both vendors, everything released, renamed, repriced, deprecated or
+retired since 2026-10-04, from vendor docs, changelogs, model pages, and
+pricing pages. For each new or changed model: exact API/CLI model ID, release
+date, vendor positioning (flagship, mid, cheap tier), current per-token
+pricing with the date you read it, context window, max output, effort or
+reasoning levels supported, and deprecation status. Also say explicitly if a
+baseline model was repriced or deprecated, or if nothing changed for a vendor.
+Do not assess capability; that is a later phase.
+
+Cite every claim with URL and date. Distinguish vendor docs from secondhand
+reports. State your model ID at the top. Do the work yourself, no subagents,
+no background agents. Don't commit. Write your report to the path given in
+your prompt and nothing else. No em-dashes.
+
+exec
+/usr/bin/bash -lc 'pwd && git status --short && git rev-parse --show-toplevel' in /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7
+ succeeded in 0ms:
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7
+?? ./
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5
+
+codex
+I’m using the casebook skill for context and the OpenAI docs skill for the Codex research. The brief directs me to work independently, write only the requested report, and leave it uncommitted.
+
+web search: 
+exec
+/usr/bin/bash -lc 'cat /home/wiw/.codex/skills/.system/openai-docs/SKILL.md' in /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7
+ succeeded in 0ms:
+---
+name: "openai-docs"
+description: "Use for Codex models/pricing, scheduled tasks, skills, settings, setup, troubleshooting, customization, automations, and self-knowledge—including 'you,' 'your,' 'this app,' or 'this coding agent' when they refer to Codex—and for OpenAI APIs/products and ChatGPT Work. Also use for model choice/migration, prompting, SDKs, Responses, Realtime, agents, evals, and Chat/Work/Codex comparisons. Do not use for generic app/software tasks that merely mention Codex."
+metadata:
+  short-description: "Codex models/pricing, scheduled tasks, skills, settings, setup, troubleshooting, and self-knowledge; OpenAI APIs and ChatGPT Work. 'You'/'this app' means Codex only."
+---
+
+# OpenAI Docs
+
+Provide current, cited OpenAI product, API, model, and Codex guidance. Read zero or one primary reference.
+
+**First substantive action:** Search the user's exact requested official OpenAI documentation topic and any explicitly named model using a concise, topic-specific query of 2-6 essential terms. When an already-available direct official documentation search and page-retrieval capability is present, use it first: search, then fetch or open the matching official page before general web search. Otherwise, immediately use official-domain web search, then actually open or fetch the relevant official page. Complete this source order before reading a reference, inspecting local or repository files, running a Codex manual or model resolver, drafting a plan, or answering from memory. Use the actual fetched page, not a search snippet or an unopened link. If one official search or page does not establish the answer, search another appropriate official domain and actually open or fetch the result. Preserve the exact requested model; never substitute a newer model.
+
+**Only exception:** An explicitly requested, genuinely broad, cross-topic Codex setup, orientation, or system-map synthesis may use the manual first when shell execution and an allowed temporary cache are available. A specific Codex feature, setting, command, error, model, or requested citation remains docs-first. Mixed Chat/Work/Codex comparisons are official documentation questions, not manual-first Codex requests.
+
+For generic software tasks, answer the software task directly. OpenAI implementation, debugging, SDK, API, prompting, agent, and eval requests are not generic.
+
+For a straightforward factual or citation-only request, follow the source order and do not read a route reference. This includes straightforward API facts, ChatGPT Work or mixed Chat/Work/Codex comparisons, model tiers, aliases, Pro mode, reasoning settings, factual migration baselines, and narrow Codex facts. Prioritize `learn.chatgpt.com` for ChatGPT Work.
+
+## Choose one primary route
+
+Use the first matching route, and read its reference only when the requested task needs that specialized workflow:
+
+- **Explicitly requested local documentation integration:** Read [integration guidance](references/mcp-diagnostics.md) only when the user explicitly requests that local integration.
+- **Model migration, upgrades, or model-specific prompting:** Read [model-migration.md](references/model-migration.md) for actual migration planning, implementation, dynamic target resolution, or prompt changes. Preserve an explicitly requested target.
+- **Model selection and comparisons:** Read [model-selection.md](references/model-selection.md) only when nuanced current, latest, default, cost, latency, quality, or modality tradeoffs need more guidance. Do not run a migration resolver for selection alone.
+- **Product, API, ChatGPT Work, and mixed Chat/Work/Codex documentation:** Read [official-docs.md](references/official-docs.md) only when fetched official pages leave source selection, API schemas, or the requested implementation unresolved. This route is not manual-first.
+- **Explicitly broad Codex setup, orientation, or cross-topic synthesis:** Read [codex-self-knowledge.md](references/codex-self-knowledge.md) when the eligible Codex manual or deeper Codex procedures are needed.
+
+Read at most one primary reference. Do not open every route, bundled model guide, or helper script. Read a supporting reference or run a helper only when the chosen workflow demonstrably needs it.
+
+## Source and execution boundaries
+
+- Search, open, fetch, and cite only `developers.openai.com`, `platform.openai.com`, and `learn.chatgpt.com`. Cite the page that supports the claim. State uncertainty when official sources do not establish pricing, availability, account access, limits, or behavior.
+- Preserve an explicitly requested model for selection, migration, and prompting. Resolve an unspecified latest or current migration target only after searching and fetching current official guidance.
+- Use `references/latest-model.md` only as a disclosed fallback after current official model guidance does not answer the question. Read `references/upgrading-to-gpt-6-astra.md` only for an actual, requested GPT-6 migration; read `references/prompting-guide.md` only for requested prompting work.
+- Before building, running, editing, debugging, or testing an API-backed app or tool, use `openai-platform-api-key` first when available. Documentation, conceptual examples, model selection, and read-only guidance do not require an API key.
+- Say "OpenAI Docs" or "official OpenAI documentation" in user-facing answers. Keep exact official citations and examples concise.
+
+exec
+/usr/bin/bash -lc 'rg --files -g AGENTS.md -g overview.md -g case.toml /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/.agents' in /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7
+ succeeded in 0ms:
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-08-04__cf504f22/case.toml
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-08-04__cf504f22/overview.md
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-08-03__077d0003/case.toml
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-08-03__077d0003/overview.md
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-07-27__8cef4456/case.toml
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-07-27__8cef4456/overview.md
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-08-13__d62ac8ab/case.toml
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-08-13__d62ac8ab/overview.md
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-08-03__df73dba7/case.toml
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-08-03__df73dba7/overview.md
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-07-29__0c3dc621/case.toml
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-04__5f21657f/case.toml
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-07-29__0c3dc621/overview.md
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-04__5f21657f/overview.md
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-07-19__8e617d83/case.toml
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-07-19__8e617d83/overview.md
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-08-12__979f3728/case.toml
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-08-12__979f3728/overview.md
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/case.toml
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/overview.md
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-08-25__bfda810d/overview.md
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-08-25__bfda810d/case.toml
+
+web search: site.anthropic.com "Claude Haiku 5.5" ...
+web search: 
+exec
+/usr/bin/bash -lc 'cat /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/overview.md' in /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7
+ succeeded in 0ms:
+# Overview
+
+## Goal
+
+Incremental refresh of `skills/delegate/models.md` after Claude Haiku 5.5
+shipped, four days after the full refresh in case 5f21657f (2026-10-04). The
+user asked not to redo the full research, only to consider Haiku 5.5 and any
+other model released since that refresh.
+
+## Scope decisions
+
+- Baseline: models.md and tools.md both at `0e21e2c`/`146fb4a`, 2026-10-04.
+- tools phase skipped: installed CLIs unchanged (claude 2.1.286, codex 0.159.3).
+  Newer versions are published (claude 2.1.293, codex 0.161.0) but upgrading
+  is the user's call.
+- Research limited to new models, each placed relative to the existing roster.
+  The previous case's research reports are reused as the evidence for existing
+  rows.
+
+## Where things stand
+
+See `run-log.md`.
+
+exec
+/usr/bin/bash -lc 'for directory in /mnt /mnt/black /mnt/black/prog /mnt/black/prog/agent-skills /mnt/black/prog/agent-skills/.worktrees /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5 /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7; do if test -f "$directory/AGENTS.md"; then cat "$directory/AGENTS.md"; fi; done' in /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7
+ succeeded in 0ms:
+# AGENTS.md
+# AGENTS.md
+
+web search: https://developers.openai.com/api/docs/changelog
+web search: 
+web search: https://platform.claude.com/docs/en/about-claude/models/overview
+web search: 
+web search: '2026-10-'
+web search: 
+web search: 
+codex
+Live search is working. Anthropic’s docs confirm Haiku 5.5’s release and a 50% cut to Sonnet 5.5 cache-read pricing on October 7. OpenAI’s changelog also records a Codex default-model change, so I’m checking that separately from new model releases.
+
+web search: 
+web search: https://developers.openai.com/api/docs/models/gpt-6.1-sol
+web search: 
+web search: https://developers.openai.com/api/docs/models/gpt-6.1-sol.md
+web search: 
+web search: site:developers.openai.com gpt October 2026 pricing deprecated renamed ...
+web search: 
+web search: 
+web search: 
+web search: site:code.claude.com/docs "haiku" "5.5" ...
+web search: 
+web search: "Claude" "October 8, 2026" model pricing release ...
+web search: 
+web search: https://developers.openai.com/api/docs/guides/gpt-6
+web search: 
+web search: 
+codex
+The model-release delta is Haiku 5.5, with Sonnet 5.5’s cache-price cut alongside it. I found no OpenAI model release or repricing in the window, but Codex 0.161.0 changes the default to GPT-6.1 Sol. I also verified that GPT-5.5’s October 14 retirement was announced before the baseline.
+
+web search: 
+web search: 'chat-latest'
+web search: 
+web search: 'Haiku 5.5 context window and pricing'
+apply patch
+patch: completed
+/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/drift-models-gpt-6-1-sol.md
+diff --git a/docs/casebook/2026-10-08__fe46a1e7/drift-models-gpt-6-1-sol.md b/docs/casebook/2026-10-08__fe46a1e7/drift-models-gpt-6-1-sol.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..8cbced9a62fff84df75fc1c8c61ea05321abf525
+--- /dev/null
++++ b/docs/casebook/2026-10-08__fe46a1e7/drift-models-gpt-6-1-sol.md
+@@ -0,0 +1,85 @@
++Researcher model ID: `gpt-6.1-sol`
++
++Research date: **2026-10-08**. Comparison window: after the 2026-10-04 baseline through the sources available on 2026-10-08. Live web search succeeded. Research was performed independently, without subagents. All sources below are vendor documentation, announcements, or vendor-maintained changelogs. No secondhand reports support the findings. Positioning describes the vendor's product tier, without assessing capability.
++
++**Confirmed delta:** Anthropic released `claude-haiku-5-5` and halved `claude-sonnet-5-5` cache-read pricing on **2026-10-07**. Haiku 5.5 requires Claude Code **2.1.293 or later** according to its CLI documentation. [Anthropic release notes](https://platform.claude.com/docs/en/release-notes/overview), entries dated 2026-10-07, read 2026-10-08. [Claude Code model configuration](https://code.claude.com/docs/en/model-config), read 2026-10-08.
++
++For OpenAI, I found **no new general-purpose GPT/Codex model, model rename, token-price change, or baseline-model deprecation/retirement announcement** in the comparison window. There is a CLI change: **Codex 0.161.0**, released **2026-10-07**, makes GPT-6.1 Sol the bundled and Amazon Bedrock catalog default. This changes model selection, not its release date or price. These are findings from the reviewed records, not proof against an undocumented change. [OpenAI API changelog](https://developers.openai.com/api/docs/changelog), [API pricing](https://developers.openai.com/api/docs/pricing), [API deprecations](https://developers.openai.com/api/docs/deprecations), and [ChatGPT/Codex changelog](https://learn.chatgpt.com/docs/changelog), all read 2026-10-08.
++
++**Anthropic: new and repriced models**
++
++The specifications in each column come from that model's linked vendor page, read **2026-10-08**. Effort details are expanded below.
++
++| Field | New: Claude Haiku 5.5 | Repriced baseline model: Claude Sonnet 5.5 |
++| --- | --- | --- |
++| Exact first-party API / CLI model ID | `claude-haiku-5-5` | `claude-sonnet-5-5` |
++| Model release date | 2026-10-07 | 2026-09-28, before baseline |
++| Change date | 2026-10-07 launch | 2026-10-07 cache-read price reduction |
++| Vendor positioning | Cheap small-model tier for high-volume, latency-sensitive classification, extraction, routing, and subagent tasks | Middle tier combining speed and intelligence |
++| Context window | 1,000,000 tokens | 1,000,000 tokens |
++| Max ordinary API output | 128,000 tokens | 128,000 tokens |
++| Thinking | Adaptive, on by default | Adaptive, on by default |
++| Effort levels | `low`, `medium`, `high`, `xhigh`, `max` | `low`, `medium`, `high`, `xhigh`, `max` |
++| API default effort | `medium` | `high` |
++| Claude Code default effort | `medium` | `medium` |
++| Lifecycle status | Active, not deprecated | Active, not deprecated |
++| Earliest stated retirement | Not sooner than 2027-10-07 | Not sooner than 2027-09-28 |
++| Model source | [Haiku overview, read 2026-10-08](https://platform.claude.com/docs/en/models/haiku-5-5/overview) | [Sonnet overview, read 2026-10-08](https://platform.claude.com/docs/en/models/sonnet-5-5/overview) |
++
++Sources for the change date and effort rows: [release notes](https://platform.claude.com/docs/en/release-notes/overview), entry 2026-10-07, [API effort documentation](https://platform.claude.com/docs/en/build-with-claude/effort), and [Claude Code configuration](https://code.claude.com/docs/en/model-config), all read 2026-10-08. The tier labels are a shorthand for the vendor positioning, not a benchmark comparison.
++
++All prices below are **USD per 1,000,000 tokens**, read **2026-10-08**. Divide by 1,000,000 for dollars per token. These are standard first-party API token rates.
++
++| Model / prompt length | Uncached input | Output | Cache read | Cache write, 5 minutes | Cache write, 1 hour |
++| --- | ---: | ---: | ---: | ---: | ---: |
++| Haiku 5.5, prompt up to and including 100,000 tokens | $0.10 | $0.50 | $0.01 | $0.125 | $0.20 |
++| Haiku 5.5, prompt over 100,000 tokens | $0.50 | $2.50 | $0.05 | $0.625 | $1.00 |
++| Sonnet 5.5, full context window | $2.00 | $10.00 | **$0.10, previously $0.20** | $2.50 | $4.00 |
++
++Sources for all table prices: [Haiku model pricing](https://platform.claude.com/docs/en/models/haiku-5-5/overview), [Sonnet model pricing](https://platform.claude.com/docs/en/models/sonnet-5-5/overview), and [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing), read 2026-10-08. The Sonnet reduction is explicitly dated **2026-10-07**, with cache writes and every other price unchanged. Haiku's threshold changes both input and output rates. [Release notes](https://platform.claude.com/docs/en/release-notes/overview), entry 2026-10-07, read 2026-10-08.
++
++Both models have a **50% Batch API input/output discount**. Both also advertise a **300,000-token max output in Message Batches beta**, using `output-300k-2026-03-24`. That exception is separate from their ordinary 128,000-token output limit and is not a Claude Code output setting. [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview) and [Sonnet overview](https://platform.claude.com/docs/en/models/sonnet-5-5/overview), read 2026-10-08.
++
++Haiku's API permits `thinking: {type: "disabled"}` at `low`, `medium`, or `high`, but rejects it at `xhigh` or `max`. Manual `budget_tokens` thinking is unsupported. Sonnet's lowest API thinking setting is `between_tools`, permitted at `high` and below. **Claude Code exposes neither model's API thinking-off option:** its documentation says thinking cannot be turned off for Haiku 5.5 or Sonnet 5.5. [API effort](https://platform.claude.com/docs/en/build-with-claude/effort), [release notes](https://platform.claude.com/docs/en/release-notes/overview), and [CLI configuration](https://code.claude.com/docs/en/model-config), read 2026-10-08.
++
++Select Haiku explicitly with `claude --model claude-haiku-5-5`. The current first-party `haiku` alias resolves to Haiku 5.5, while the documented AWS, Bedrock, Google Cloud, and Foundry aliases still resolve to Haiku 4.5. The first-party CLI uses Haiku 5.5's native 1M context without a `[1m]` suffix. [Claude Code configuration](https://code.claude.com/docs/en/model-config), read 2026-10-08. The vendor changelog records its addition in **2.1.293**, but does not date that version heading. [Claude Code changelog](https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md), read 2026-10-08.
++
++**Anthropic baseline audit:** only Sonnet 5.5 has an announced repricing in this window. No additional release, rename, repricing, deprecation, or retirement was found for `claude-opus-5-5`, `claude-fable-5-1`, `claude-haiku-4-5`, `claude-opus-5`, `claude-opus-4-8`, `claude-fable-5`, or `claude-sonnet-5` in the reviewed release and pricing records. [Release notes](https://platform.claude.com/docs/en/release-notes/overview) and [pricing](https://platform.claude.com/docs/en/about-claude/pricing), read 2026-10-08.
++
++All eight Anthropic baseline models remain **Active** in the lifecycle table. Haiku 4.5 is listed by its pinned ID `claude-haiku-4-5-20251001`, with retirement **not sooner than 2026-10-15**. That is an earliest commitment boundary, not an announced October 15 shutdown. The latest listed deprecation is Sonnet 4.5, announced **2026-09-30**, outside this window and outside the baseline roster. Haiku 5.5's launch has not deprecated Haiku 4.5. [Anthropic model deprecations](https://platform.claude.com/docs/en/about-claude/model-deprecations), read 2026-10-08.
++
++**OpenAI: CLI default change and adjacent API update**
++
++GPT-6.1 Sol became the Codex default on **2026-10-07**, but its API release was **2026-09-29**. GPT-6 Luna was released **2026-09-22** and gained the beta **Decisions API** endpoint on **2026-10-06**. The latter is an endpoint addition to an existing model, not a new CLI model or token-price reduction. [ChatGPT/Codex changelog](https://learn.chatgpt.com/docs/changelog), entries 2026-10-07, and [API changelog](https://developers.openai.com/api/docs/changelog), entries 2026-09-29, 2026-09-22, and 2026-10-06, read 2026-10-08.
++
++| Field | GPT-6.1 Sol | GPT-6 Luna |
++| --- | --- | --- |
++| Exact API / CLI ID | `gpt-6.1-sol` | `gpt-6-luna` |
++| Vendor positioning | Workhorse for complex coding and professional work at lower cost than Astra | Cheap tier for focused, high-volume work |
++| Context window | 1,050,000 tokens | 1,050,000 tokens |
++| Max output | 128,000 tokens | 128,000 tokens |
++| API reasoning efforts | `low`, `medium`, `high`, `xhigh`, `max` | `none`, `low`, `medium`, `high`, `xhigh`, `max` |
++| API default effort | `medium` | `medium` |
++| API deprecation | No notice found | No notice found |
++| Model source | [Sol model page, read 2026-10-08](https://developers.openai.com/api/docs/models/gpt-6.1-sol) | [Luna model page, read 2026-10-08](https://developers.openai.com/api/docs/models/gpt-6-luna) |
++
++Deprecation source for both rows: [OpenAI API deprecations](https://developers.openai.com/api/docs/deprecations), read 2026-10-08. Sol rejects `none` and `minimal`. Codex additionally offers **Ultra** for supported models as a multi-agent mode, beyond the ordinary API effort list. Luna supports up to Max, **not Ultra**. Codex 0.161.0 adds Ultra and multi-agent V2 on compatible Bedrock models. [Sol model page](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [Codex models](https://learn.chatgpt.com/docs/models), and [Codex changelog](https://learn.chatgpt.com/docs/changelog), read 2026-10-08.
++
++Standard prices, **USD per 1,000,000 tokens**, read **2026-10-08**:
++
++| Model / input length | Uncached input | Cached input | Cache write | Output |
++| --- | ---: | ---: | ---: | ---: |
++| GPT-6.1 Sol, up to 272K | $2.00 | $0.10 | $2.50 | $10.00 |
++| GPT-6.1 Sol, over 272K | $4.00 | $0.20 | $5.00 | $15.00 |
++| GPT-6 Luna, up to 272K | $0.10 | $0.01 | $0.125 | $0.50 |
++| GPT-6 Luna, over 272K | $0.20 | $0.02 | $0.25 | $0.75 |
++
++Sources for all prices: [OpenAI pricing](https://developers.openai.com/api/docs/pricing), [Sol model page](https://developers.openai.com/api/docs/models/gpt-6.1-sol), and [Luna model page](https://developers.openai.com/api/docs/models/gpt-6-luna), read 2026-10-08. The long-input multipliers apply to the **full request**. Batch and Flex cost 50% of Standard, and Fast costs twice Standard. These API rates are distinct from ChatGPT subscription usage credits. [Sol model page](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [Luna model page](https://developers.openai.com/api/docs/models/gpt-6-luna), and [Work/Codex pricing](https://learn.chatgpt.com/docs/pricing), read 2026-10-08.
++
++**OpenAI baseline audit:** no new token repricing, rename, deprecation, or retirement was found for any of `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6-luna`, `gpt-6-sol`, `gpt-5.6-sol`, `gpt-5.6-terra`, or `gpt-5.6-luna` in the reviewed dated records. GPT-5.6 Sol's current promotional pricing remains guaranteed at least through **2026-11-21**. That reduction was announced **2026-08-21**, before the baseline. [API changelog](https://developers.openai.com/api/docs/changelog), [API pricing](https://developers.openai.com/api/docs/pricing), and [API deprecations](https://developers.openai.com/api/docs/deprecations), read 2026-10-08.
++
++**Previously announced retirement relevant to the supplied local list:** `gpt-5.5` retires from Codex with ChatGPT sign-in on **2026-10-14**, across all plans. The announcement was **2026-09-14**, so it is not new drift. The OpenAI API is unaffected. Its appearance in the supplied October 8 CLI list is compatible with a future retirement. [ChatGPT/Codex changelog](https://learn.chatgpt.com/docs/changelog), entry 2026-09-14, and [Codex model documentation](https://learn.chatgpt.com/docs/models), read 2026-10-08. The local-list observation itself is supplied by the [research brief](/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/drift-brief.md), dated/read 2026-10-08, not independently tested here.
++
++Two additional OpenAI items do not add a general-purpose CLI model: the API changelog updates `chat-latest` on **2026-10-07**, and GPT-Rosalind research billing begins **2026-10-05** under restricted research access. Neither appears in the supplied CLI roster. Codex 0.161.0 also changes **Daybreak access routing** to explicit opt-in and adds a per-turn Cyber program override, without announcing a new model ID. [API changelog](https://developers.openai.com/api/docs/changelog), [API pricing](https://developers.openai.com/api/docs/pricing), [Codex changelog](https://learn.chatgpt.com/docs/changelog), and [supplied brief](/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/drift-brief.md), all read 2026-10-08.
++
++**Evidence limits:** absence findings concern published changes in the specified window. Current pages establish today's settings and prices but do not, alone, prove they were identical on October 4. Dated changelogs establish the identified changes. No inference requests or CLI upgrades were performed, so account-specific access and behavior of older installed clients were not tested.
+
+diff --git a/docs/casebook/2026-10-08__fe46a1e7/drift-models-gpt-6-1-sol.md b/docs/casebook/2026-10-08__fe46a1e7/drift-models-gpt-6-1-sol.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..8cbced9a62fff84df75fc1c8c61ea05321abf525
+--- /dev/null
++++ b/docs/casebook/2026-10-08__fe46a1e7/drift-models-gpt-6-1-sol.md
+@@ -0,0 +1,85 @@
++Researcher model ID: `gpt-6.1-sol`
++
++Research date: **2026-10-08**. Comparison window: after the 2026-10-04 baseline through the sources available on 2026-10-08. Live web search succeeded. Research was performed independently, without subagents. All sources below are vendor documentation, announcements, or vendor-maintained changelogs. No secondhand reports support the findings. Positioning describes the vendor's product tier, without assessing capability.
++
++**Confirmed delta:** Anthropic released `claude-haiku-5-5` and halved `claude-sonnet-5-5` cache-read pricing on **2026-10-07**. Haiku 5.5 requires Claude Code **2.1.293 or later** according to its CLI documentation. [Anthropic release notes](https://platform.claude.com/docs/en/release-notes/overview), entries dated 2026-10-07, read 2026-10-08. [Claude Code model configuration](https://code.claude.com/docs/en/model-config), read 2026-10-08.
++
++For OpenAI, I found **no new general-purpose GPT/Codex model, model rename, token-price change, or baseline-model deprecation/retirement announcement** in the comparison window. There is a CLI change: **Codex 0.161.0**, released **2026-10-07**, makes GPT-6.1 Sol the bundled and Amazon Bedrock catalog default. This changes model selection, not its release date or price. These are findings from the reviewed records, not proof against an undocumented change. [OpenAI API changelog](https://developers.openai.com/api/docs/changelog), [API pricing](https://developers.openai.com/api/docs/pricing), [API deprecations](https://developers.openai.com/api/docs/deprecations), and [ChatGPT/Codex changelog](https://learn.chatgpt.com/docs/changelog), all read 2026-10-08.
++
++**Anthropic: new and repriced models**
++
++The specifications in each column come from that model's linked vendor page, read **2026-10-08**. Effort details are expanded below.
++
++| Field | New: Claude Haiku 5.5 | Repriced baseline model: Claude Sonnet 5.5 |
++| --- | --- | --- |
++| Exact first-party API / CLI model ID | `claude-haiku-5-5` | `claude-sonnet-5-5` |
++| Model release date | 2026-10-07 | 2026-09-28, before baseline |
++| Change date | 2026-10-07 launch | 2026-10-07 cache-read price reduction |
++| Vendor positioning | Cheap small-model tier for high-volume, latency-sensitive classification, extraction, routing, and subagent tasks | Middle tier combining speed and intelligence |
++| Context window | 1,000,000 tokens | 1,000,000 tokens |
++| Max ordinary API output | 128,000 tokens | 128,000 tokens |
++| Thinking | Adaptive, on by default | Adaptive, on by default |
++| Effort levels | `low`, `medium`, `high`, `xhigh`, `max` | `low`, `medium`, `high`, `xhigh`, `max` |
++| API default effort | `medium` | `high` |
++| Claude Code default effort | `medium` | `medium` |
++| Lifecycle status | Active, not deprecated | Active, not deprecated |
++| Earliest stated retirement | Not sooner than 2027-10-07 | Not sooner than 2027-09-28 |
++| Model source | [Haiku overview, read 2026-10-08](https://platform.claude.com/docs/en/models/haiku-5-5/overview) | [Sonnet overview, read 2026-10-08](https://platform.claude.com/docs/en/models/sonnet-5-5/overview) |
++
++Sources for the change date and effort rows: [release notes](https://platform.claude.com/docs/en/release-notes/overview), entry 2026-10-07, [API effort documentation](https://platform.claude.com/docs/en/build-with-claude/effort), and [Claude Code configuration](https://code.claude.com/docs/en/model-config), all read 2026-10-08. The tier labels are a shorthand for the vendor positioning, not a benchmark comparison.
++
++All prices below are **USD per 1,000,000 tokens**, read **2026-10-08**. Divide by 1,000,000 for dollars per token. These are standard first-party API token rates.
++
++| Model / prompt length | Uncached input | Output | Cache read | Cache write, 5 minutes | Cache write, 1 hour |
++| --- | ---: | ---: | ---: | ---: | ---: |
++| Haiku 5.5, prompt up to and including 100,000 tokens | $0.10 | $0.50 | $0.01 | $0.125 | $0.20 |
++| Haiku 5.5, prompt over 100,000 tokens | $0.50 | $2.50 | $0.05 | $0.625 | $1.00 |
++| Sonnet 5.5, full context window | $2.00 | $10.00 | **$0.10, previously $0.20** | $2.50 | $4.00 |
++
++Sources for all table prices: [Haiku model pricing](https://platform.claude.com/docs/en/models/haiku-5-5/overview), [Sonnet model pricing](https://platform.claude.com/docs/en/models/sonnet-5-5/overview), and [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing), read 2026-10-08. The Sonnet reduction is explicitly dated **2026-10-07**, with cache writes and every other price unchanged. Haiku's threshold changes both input and output rates. [Release notes](https://platform.claude.com/docs/en/release-notes/overview), entry 2026-10-07, read 2026-10-08.
++
++Both models have a **50% Batch API input/output discount**. Both also advertise a **300,000-token max output in Message Batches beta**, using `output-300k-2026-03-24`. That exception is separate from their ordinary 128,000-token output limit and is not a Claude Code output setting. [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview) and [Sonnet overview](https://platform.claude.com/docs/en/models/sonnet-5-5/overview), read 2026-10-08.
++
++Haiku's API permits `thinking: {type: "disabled"}` at `low`, `medium`, or `high`, but rejects it at `xhigh` or `max`. Manual `budget_tokens` thinking is unsupported. Sonnet's lowest API thinking setting is `between_tools`, permitted at `high` and below. **Claude Code exposes neither model's API thinking-off option:** its documentation says thinking cannot be turned off for Haiku 5.5 or Sonnet 5.5. [API effort](https://platform.claude.com/docs/en/build-with-claude/effort), [release notes](https://platform.claude.com/docs/en/release-notes/overview), and [CLI configuration](https://code.claude.com/docs/en/model-config), read 2026-10-08.
++
++Select Haiku explicitly with `claude --model claude-haiku-5-5`. The current first-party `haiku` alias resolves to Haiku 5.5, while the documented AWS, Bedrock, Google Cloud, and Foundry aliases still resolve to Haiku 4.5. The first-party CLI uses Haiku 5.5's native 1M context without a `[1m]` suffix. [Claude Code configuration](https://code.claude.com/docs/en/model-config), read 2026-10-08. The vendor changelog records its addition in **2.1.293**, but does not date that version heading. [Claude Code changelog](https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md), read 2026-10-08.
++
++**Anthropic baseline audit:** only Sonnet 5.5 has an announced repricing in this window. No additional release, rename, repricing, deprecation, or retirement was found for `claude-opus-5-5`, `claude-fable-5-1`, `claude-haiku-4-5`, `claude-opus-5`, `claude-opus-4-8`, `claude-fable-5`, or `claude-sonnet-5` in the reviewed release and pricing records. [Release notes](https://platform.claude.com/docs/en/release-notes/overview) and [pricing](https://platform.claude.com/docs/en/about-claude/pricing), read 2026-10-08.
++
++All eight Anthropic baseline models remain **Active** in the lifecycle table. Haiku 4.5 is listed by its pinned ID `claude-haiku-4-5-20251001`, with retirement **not sooner than 2026-10-15**. That is an earliest commitment boundary, not an announced October 15 shutdown. The latest listed deprecation is Sonnet 4.5, announced **2026-09-30**, outside this window and outside the baseline roster. Haiku 5.5's launch has not deprecated Haiku 4.5. [Anthropic model deprecations](https://platform.claude.com/docs/en/about-claude/model-deprecations), read 2026-10-08.
++
++**OpenAI: CLI default change and adjacent API update**
++
++GPT-6.1 Sol became the Codex default on **2026-10-07**, but its API release was **2026-09-29**. GPT-6 Luna was released **2026-09-22** and gained the beta **Decisions API** endpoint on **2026-10-06**. The latter is an endpoint addition to an existing model, not a new CLI model or token-price reduction. [ChatGPT/Codex changelog](https://learn.chatgpt.com/docs/changelog), entries 2026-10-07, and [API changelog](https://developers.openai.com/api/docs/changelog), entries 2026-09-29, 2026-09-22, and 2026-10-06, read 2026-10-08.
++
++| Field | GPT-6.1 Sol | GPT-6 Luna |
++| --- | --- | --- |
++| Exact API / CLI ID | `gpt-6.1-sol` | `gpt-6-luna` |
++| Vendor positioning | Workhorse for complex coding and professional work at lower cost than Astra | Cheap tier for focused, high-volume work |
++| Context window | 1,050,000 tokens | 1,050,000 tokens |
++| Max output | 128,000 tokens | 128,000 tokens |
++| API reasoning efforts | `low`, `medium`, `high`, `xhigh`, `max` | `none`, `low`, `medium`, `high`, `xhigh`, `max` |
++| API default effort | `medium` | `medium` |
++| API deprecation | No notice found | No notice found |
++| Model source | [Sol model page, read 2026-10-08](https://developers.openai.com/api/docs/models/gpt-6.1-sol) | [Luna model page, read 2026-10-08](https://developers.openai.com/api/docs/models/gpt-6-luna) |
++
++Deprecation source for both rows: [OpenAI API deprecations](https://developers.openai.com/api/docs/deprecations), read 2026-10-08. Sol rejects `none` and `minimal`. Codex additionally offers **Ultra** for supported models as a multi-agent mode, beyond the ordinary API effort list. Luna supports up to Max, **not Ultra**. Codex 0.161.0 adds Ultra and multi-agent V2 on compatible Bedrock models. [Sol model page](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [Codex models](https://learn.chatgpt.com/docs/models), and [Codex changelog](https://learn.chatgpt.com/docs/changelog), read 2026-10-08.
++
++Standard prices, **USD per 1,000,000 tokens**, read **2026-10-08**:
++
++| Model / input length | Uncached input | Cached input | Cache write | Output |
++| --- | ---: | ---: | ---: | ---: |
++| GPT-6.1 Sol, up to 272K | $2.00 | $0.10 | $2.50 | $10.00 |
++| GPT-6.1 Sol, over 272K | $4.00 | $0.20 | $5.00 | $15.00 |
++| GPT-6 Luna, up to 272K | $0.10 | $0.01 | $0.125 | $0.50 |
++| GPT-6 Luna, over 272K | $0.20 | $0.02 | $0.25 | $0.75 |
++
++Sources for all prices: [OpenAI pricing](https://developers.openai.com/api/docs/pricing), [Sol model page](https://developers.openai.com/api/docs/models/gpt-6.1-sol), and [Luna model page](https://developers.openai.com/api/docs/models/gpt-6-luna), read 2026-10-08. The long-input multipliers apply to the **full request**. Batch and Flex cost 50% of Standard, and Fast costs twice Standard. These API rates are distinct from ChatGPT subscription usage credits. [Sol model page](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [Luna model page](https://developers.openai.com/api/docs/models/gpt-6-luna), and [Work/Codex pricing](https://learn.chatgpt.com/docs/pricing), read 2026-10-08.
++
++**OpenAI baseline audit:** no new token repricing, rename, deprecation, or retirement was found for any of `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6-luna`, `gpt-6-sol`, `gpt-5.6-sol`, `gpt-5.6-terra`, or `gpt-5.6-luna` in the reviewed dated records. GPT-5.6 Sol's current promotional pricing remains guaranteed at least through **2026-11-21**. That reduction was announced **2026-08-21**, before the baseline. [API changelog](https://developers.openai.com/api/docs/changelog), [API pricing](https://developers.openai.com/api/docs/pricing), and [API deprecations](https://developers.openai.com/api/docs/deprecations), read 2026-10-08.
++
++**Previously announced retirement relevant to the supplied local list:** `gpt-5.5` retires from Codex with ChatGPT sign-in on **2026-10-14**, across all plans. The announcement was **2026-09-14**, so it is not new drift. The OpenAI API is unaffected. Its appearance in the supplied October 8 CLI list is compatible with a future retirement. [ChatGPT/Codex changelog](https://learn.chatgpt.com/docs/changelog), entry 2026-09-14, and [Codex model documentation](https://learn.chatgpt.com/docs/models), read 2026-10-08. The local-list observation itself is supplied by the [research brief](/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/drift-brief.md), dated/read 2026-10-08, not independently tested here.
++
++Two additional OpenAI items do not add a general-purpose CLI model: the API changelog updates `chat-latest` on **2026-10-07**, and GPT-Rosalind research billing begins **2026-10-05** under restricted research access. Neither appears in the supplied CLI roster. Codex 0.161.0 also changes **Daybreak access routing** to explicit opt-in and adds a per-turn Cyber program override, without announcing a new model ID. [API changelog](https://developers.openai.com/api/docs/changelog), [API pricing](https://developers.openai.com/api/docs/pricing), [Codex changelog](https://learn.chatgpt.com/docs/changelog), and [supplied brief](/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/drift-brief.md), all read 2026-10-08.
++
++**Evidence limits:** absence findings concern published changes in the specified window. Current pages establish today's settings and prices but do not, alone, prove they were identical on October 4. Dated changelogs establish the identified changes. No inference requests or CLI upgrades were performed, so account-specific access and behavior of older installed clients were not tested.
+
+exec
+/usr/bin/bash -lc "python3 - <<'PY'
+from pathlib import Path
+report_path = Path('/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/drift-models-gpt-6-1-sol.md')
+report_text = report_path.read_text()
+assert report_text.startswith('Researcher model ID: "'`gpt-6.1-sol`'"')
+assert '\\u2014' not in report_text
+assert all(line == line.rstrip() for line in report_text.splitlines())
+assert all(model_id in report_text for model_id in ['claude-haiku-5-5', 'claude-sonnet-5-5', 'gpt-6-astra', 'gpt-6.1-sol', 'gpt-6-luna', 'gpt-6-sol', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna'])
+print(f'Report verified: {len(report_text.split())} words, {report_text.count(\"https://\")} vendor citations.')
+PY" in /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7
+ succeeded in 0ms:
+Report verified: 1544 words, 47 vendor citations.
+
+diff --git a/docs/casebook/2026-10-08__fe46a1e7/drift-models-gpt-6-1-sol.md b/docs/casebook/2026-10-08__fe46a1e7/drift-models-gpt-6-1-sol.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..8cbced9a62fff84df75fc1c8c61ea05321abf525
+--- /dev/null
++++ b/docs/casebook/2026-10-08__fe46a1e7/drift-models-gpt-6-1-sol.md
+@@ -0,0 +1,85 @@
++Researcher model ID: `gpt-6.1-sol`
++
++Research date: **2026-10-08**. Comparison window: after the 2026-10-04 baseline through the sources available on 2026-10-08. Live web search succeeded. Research was performed independently, without subagents. All sources below are vendor documentation, announcements, or vendor-maintained changelogs. No secondhand reports support the findings. Positioning describes the vendor's product tier, without assessing capability.
++
++**Confirmed delta:** Anthropic released `claude-haiku-5-5` and halved `claude-sonnet-5-5` cache-read pricing on **2026-10-07**. Haiku 5.5 requires Claude Code **2.1.293 or later** according to its CLI documentation. [Anthropic release notes](https://platform.claude.com/docs/en/release-notes/overview), entries dated 2026-10-07, read 2026-10-08. [Claude Code model configuration](https://code.claude.com/docs/en/model-config), read 2026-10-08.
++
++For OpenAI, I found **no new general-purpose GPT/Codex model, model rename, token-price change, or baseline-model deprecation/retirement announcement** in the comparison window. There is a CLI change: **Codex 0.161.0**, released **2026-10-07**, makes GPT-6.1 Sol the bundled and Amazon Bedrock catalog default. This changes model selection, not its release date or price. These are findings from the reviewed records, not proof against an undocumented change. [OpenAI API changelog](https://developers.openai.com/api/docs/changelog), [API pricing](https://developers.openai.com/api/docs/pricing), [API deprecations](https://developers.openai.com/api/docs/deprecations), and [ChatGPT/Codex changelog](https://learn.chatgpt.com/docs/changelog), all read 2026-10-08.
++
++**Anthropic: new and repriced models**
++
++The specifications in each column come from that model's linked vendor page, read **2026-10-08**. Effort details are expanded below.
++
++| Field | New: Claude Haiku 5.5 | Repriced baseline model: Claude Sonnet 5.5 |
++| --- | --- | --- |
++| Exact first-party API / CLI model ID | `claude-haiku-5-5` | `claude-sonnet-5-5` |
++| Model release date | 2026-10-07 | 2026-09-28, before baseline |
++| Change date | 2026-10-07 launch | 2026-10-07 cache-read price reduction |
++| Vendor positioning | Cheap small-model tier for high-volume, latency-sensitive classification, extraction, routing, and subagent tasks | Middle tier combining speed and intelligence |
++| Context window | 1,000,000 tokens | 1,000,000 tokens |
++| Max ordinary API output | 128,000 tokens | 128,000 tokens |
++| Thinking | Adaptive, on by default | Adaptive, on by default |
++| Effort levels | `low`, `medium`, `high`, `xhigh`, `max` | `low`, `medium`, `high`, `xhigh`, `max` |
++| API default effort | `medium` | `high` |
++| Claude Code default effort | `medium` | `medium` |
++| Lifecycle status | Active, not deprecated | Active, not deprecated |
++| Earliest stated retirement | Not sooner than 2027-10-07 | Not sooner than 2027-09-28 |
++| Model source | [Haiku overview, read 2026-10-08](https://platform.claude.com/docs/en/models/haiku-5-5/overview) | [Sonnet overview, read 2026-10-08](https://platform.claude.com/docs/en/models/sonnet-5-5/overview) |
++
++Sources for the change date and effort rows: [release notes](https://platform.claude.com/docs/en/release-notes/overview), entry 2026-10-07, [API effort documentation](https://platform.claude.com/docs/en/build-with-claude/effort), and [Claude Code configuration](https://code.claude.com/docs/en/model-config), all read 2026-10-08. The tier labels are a shorthand for the vendor positioning, not a benchmark comparison.
++
++All prices below are **USD per 1,000,000 tokens**, read **2026-10-08**. Divide by 1,000,000 for dollars per token. These are standard first-party API token rates.
++
++| Model / prompt length | Uncached input | Output | Cache read | Cache write, 5 minutes | Cache write, 1 hour |
++| --- | ---: | ---: | ---: | ---: | ---: |
++| Haiku 5.5, prompt up to and including 100,000 tokens | $0.10 | $0.50 | $0.01 | $0.125 | $0.20 |
++| Haiku 5.5, prompt over 100,000 tokens | $0.50 | $2.50 | $0.05 | $0.625 | $1.00 |
++| Sonnet 5.5, full context window | $2.00 | $10.00 | **$0.10, previously $0.20** | $2.50 | $4.00 |
++
++Sources for all table prices: [Haiku model pricing](https://platform.claude.com/docs/en/models/haiku-5-5/overview), [Sonnet model pricing](https://platform.claude.com/docs/en/models/sonnet-5-5/overview), and [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing), read 2026-10-08. The Sonnet reduction is explicitly dated **2026-10-07**, with cache writes and every other price unchanged. Haiku's threshold changes both input and output rates. [Release notes](https://platform.claude.com/docs/en/release-notes/overview), entry 2026-10-07, read 2026-10-08.
++
++Both models have a **50% Batch API input/output discount**. Both also advertise a **300,000-token max output in Message Batches beta**, using `output-300k-2026-03-24`. That exception is separate from their ordinary 128,000-token output limit and is not a Claude Code output setting. [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview) and [Sonnet overview](https://platform.claude.com/docs/en/models/sonnet-5-5/overview), read 2026-10-08.
++
++Haiku's API permits `thinking: {type: "disabled"}` at `low`, `medium`, or `high`, but rejects it at `xhigh` or `max`. Manual `budget_tokens` thinking is unsupported. Sonnet's lowest API thinking setting is `between_tools`, permitted at `high` and below. **Claude Code exposes neither model's API thinking-off option:** its documentation says thinking cannot be turned off for Haiku 5.5 or Sonnet 5.5. [API effort](https://platform.claude.com/docs/en/build-with-claude/effort), [release notes](https://platform.claude.com/docs/en/release-notes/overview), and [CLI configuration](https://code.claude.com/docs/en/model-config), read 2026-10-08.
++
++Select Haiku explicitly with `claude --model claude-haiku-5-5`. The current first-party `haiku` alias resolves to Haiku 5.5, while the documented AWS, Bedrock, Google Cloud, and Foundry aliases still resolve to Haiku 4.5. The first-party CLI uses Haiku 5.5's native 1M context without a `[1m]` suffix. [Claude Code configuration](https://code.claude.com/docs/en/model-config), read 2026-10-08. The vendor changelog records its addition in **2.1.293**, but does not date that version heading. [Claude Code changelog](https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md), read 2026-10-08.
++
++**Anthropic baseline audit:** only Sonnet 5.5 has an announced repricing in this window. No additional release, rename, repricing, deprecation, or retirement was found for `claude-opus-5-5`, `claude-fable-5-1`, `claude-haiku-4-5`, `claude-opus-5`, `claude-opus-4-8`, `claude-fable-5`, or `claude-sonnet-5` in the reviewed release and pricing records. [Release notes](https://platform.claude.com/docs/en/release-notes/overview) and [pricing](https://platform.claude.com/docs/en/about-claude/pricing), read 2026-10-08.
++
++All eight Anthropic baseline models remain **Active** in the lifecycle table. Haiku 4.5 is listed by its pinned ID `claude-haiku-4-5-20251001`, with retirement **not sooner than 2026-10-15**. That is an earliest commitment boundary, not an announced October 15 shutdown. The latest listed deprecation is Sonnet 4.5, announced **2026-09-30**, outside this window and outside the baseline roster. Haiku 5.5's launch has not deprecated Haiku 4.5. [Anthropic model deprecations](https://platform.claude.com/docs/en/about-claude/model-deprecations), read 2026-10-08.
++
++**OpenAI: CLI default change and adjacent API update**
++
++GPT-6.1 Sol became the Codex default on **2026-10-07**, but its API release was **2026-09-29**. GPT-6 Luna was released **2026-09-22** and gained the beta **Decisions API** endpoint on **2026-10-06**. The latter is an endpoint addition to an existing model, not a new CLI model or token-price reduction. [ChatGPT/Codex changelog](https://learn.chatgpt.com/docs/changelog), entries 2026-10-07, and [API changelog](https://developers.openai.com/api/docs/changelog), entries 2026-09-29, 2026-09-22, and 2026-10-06, read 2026-10-08.
++
++| Field | GPT-6.1 Sol | GPT-6 Luna |
++| --- | --- | --- |
++| Exact API / CLI ID | `gpt-6.1-sol` | `gpt-6-luna` |
++| Vendor positioning | Workhorse for complex coding and professional work at lower cost than Astra | Cheap tier for focused, high-volume work |
++| Context window | 1,050,000 tokens | 1,050,000 tokens |
++| Max output | 128,000 tokens | 128,000 tokens |
++| API reasoning efforts | `low`, `medium`, `high`, `xhigh`, `max` | `none`, `low`, `medium`, `high`, `xhigh`, `max` |
++| API default effort | `medium` | `medium` |
++| API deprecation | No notice found | No notice found |
++| Model source | [Sol model page, read 2026-10-08](https://developers.openai.com/api/docs/models/gpt-6.1-sol) | [Luna model page, read 2026-10-08](https://developers.openai.com/api/docs/models/gpt-6-luna) |
++
++Deprecation source for both rows: [OpenAI API deprecations](https://developers.openai.com/api/docs/deprecations), read 2026-10-08. Sol rejects `none` and `minimal`. Codex additionally offers **Ultra** for supported models as a multi-agent mode, beyond the ordinary API effort list. Luna supports up to Max, **not Ultra**. Codex 0.161.0 adds Ultra and multi-agent V2 on compatible Bedrock models. [Sol model page](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [Codex models](https://learn.chatgpt.com/docs/models), and [Codex changelog](https://learn.chatgpt.com/docs/changelog), read 2026-10-08.
++
++Standard prices, **USD per 1,000,000 tokens**, read **2026-10-08**:
++
++| Model / input length | Uncached input | Cached input | Cache write | Output |
++| --- | ---: | ---: | ---: | ---: |
++| GPT-6.1 Sol, up to 272K | $2.00 | $0.10 | $2.50 | $10.00 |
++| GPT-6.1 Sol, over 272K | $4.00 | $0.20 | $5.00 | $15.00 |
++| GPT-6 Luna, up to 272K | $0.10 | $0.01 | $0.125 | $0.50 |
++| GPT-6 Luna, over 272K | $0.20 | $0.02 | $0.25 | $0.75 |
++
++Sources for all prices: [OpenAI pricing](https://developers.openai.com/api/docs/pricing), [Sol model page](https://developers.openai.com/api/docs/models/gpt-6.1-sol), and [Luna model page](https://developers.openai.com/api/docs/models/gpt-6-luna), read 2026-10-08. The long-input multipliers apply to the **full request**. Batch and Flex cost 50% of Standard, and Fast costs twice Standard. These API rates are distinct from ChatGPT subscription usage credits. [Sol model page](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [Luna model page](https://developers.openai.com/api/docs/models/gpt-6-luna), and [Work/Codex pricing](https://learn.chatgpt.com/docs/pricing), read 2026-10-08.
++
++**OpenAI baseline audit:** no new token repricing, rename, deprecation, or retirement was found for any of `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6-luna`, `gpt-6-sol`, `gpt-5.6-sol`, `gpt-5.6-terra`, or `gpt-5.6-luna` in the reviewed dated records. GPT-5.6 Sol's current promotional pricing remains guaranteed at least through **2026-11-21**. That reduction was announced **2026-08-21**, before the baseline. [API changelog](https://developers.openai.com/api/docs/changelog), [API pricing](https://developers.openai.com/api/docs/pricing), and [API deprecations](https://developers.openai.com/api/docs/deprecations), read 2026-10-08.
++
++**Previously announced retirement relevant to the supplied local list:** `gpt-5.5` retires from Codex with ChatGPT sign-in on **2026-10-14**, across all plans. The announcement was **2026-09-14**, so it is not new drift. The OpenAI API is unaffected. Its appearance in the supplied October 8 CLI list is compatible with a future retirement. [ChatGPT/Codex changelog](https://learn.chatgpt.com/docs/changelog), entry 2026-09-14, and [Codex model documentation](https://learn.chatgpt.com/docs/models), read 2026-10-08. The local-list observation itself is supplied by the [research brief](/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/drift-brief.md), dated/read 2026-10-08, not independently tested here.
++
++Two additional OpenAI items do not add a general-purpose CLI model: the API changelog updates `chat-latest` on **2026-10-07**, and GPT-Rosalind research billing begins **2026-10-05** under restricted research access. Neither appears in the supplied CLI roster. Codex 0.161.0 also changes **Daybreak access routing** to explicit opt-in and adds a per-turn Cyber program override, without announcing a new model ID. [API changelog](https://developers.openai.com/api/docs/changelog), [API pricing](https://developers.openai.com/api/docs/pricing), [Codex changelog](https://learn.chatgpt.com/docs/changelog), and [supplied brief](/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/drift-brief.md), all read 2026-10-08.
++
++**Evidence limits:** absence findings concern published changes in the specified window. Current pages establish today's settings and prices but do not, alone, prove they were identical on October 4. Dated changelogs establish the identified changes. No inference requests or CLI upgrades were performed, so account-specific access and behavior of older installed clients were not tested.
+
+codex
+Wrote the [report](/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/drift-models-gpt-6-1-sol.md) with dated vendor citations, model specifications, pricing changes, and retirement checks. Left uncommitted as instructed.
+diff --git a/docs/casebook/2026-10-08__fe46a1e7/drift-models-gpt-6-1-sol.md b/docs/casebook/2026-10-08__fe46a1e7/drift-models-gpt-6-1-sol.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..8cbced9a62fff84df75fc1c8c61ea05321abf525
+--- /dev/null
++++ b/docs/casebook/2026-10-08__fe46a1e7/drift-models-gpt-6-1-sol.md
+@@ -0,0 +1,85 @@
++Researcher model ID: `gpt-6.1-sol`
++
++Research date: **2026-10-08**. Comparison window: after the 2026-10-04 baseline through the sources available on 2026-10-08. Live web search succeeded. Research was performed independently, without subagents. All sources below are vendor documentation, announcements, or vendor-maintained changelogs. No secondhand reports support the findings. Positioning describes the vendor's product tier, without assessing capability.
++
++**Confirmed delta:** Anthropic released `claude-haiku-5-5` and halved `claude-sonnet-5-5` cache-read pricing on **2026-10-07**. Haiku 5.5 requires Claude Code **2.1.293 or later** according to its CLI documentation. [Anthropic release notes](https://platform.claude.com/docs/en/release-notes/overview), entries dated 2026-10-07, read 2026-10-08. [Claude Code model configuration](https://code.claude.com/docs/en/model-config), read 2026-10-08.
++
++For OpenAI, I found **no new general-purpose GPT/Codex model, model rename, token-price change, or baseline-model deprecation/retirement announcement** in the comparison window. There is a CLI change: **Codex 0.161.0**, released **2026-10-07**, makes GPT-6.1 Sol the bundled and Amazon Bedrock catalog default. This changes model selection, not its release date or price. These are findings from the reviewed records, not proof against an undocumented change. [OpenAI API changelog](https://developers.openai.com/api/docs/changelog), [API pricing](https://developers.openai.com/api/docs/pricing), [API deprecations](https://developers.openai.com/api/docs/deprecations), and [ChatGPT/Codex changelog](https://learn.chatgpt.com/docs/changelog), all read 2026-10-08.
++
++**Anthropic: new and repriced models**
++
++The specifications in each column come from that model's linked vendor page, read **2026-10-08**. Effort details are expanded below.
++
++| Field | New: Claude Haiku 5.5 | Repriced baseline model: Claude Sonnet 5.5 |
++| --- | --- | --- |
++| Exact first-party API / CLI model ID | `claude-haiku-5-5` | `claude-sonnet-5-5` |
++| Model release date | 2026-10-07 | 2026-09-28, before baseline |
++| Change date | 2026-10-07 launch | 2026-10-07 cache-read price reduction |
++| Vendor positioning | Cheap small-model tier for high-volume, latency-sensitive classification, extraction, routing, and subagent tasks | Middle tier combining speed and intelligence |
++| Context window | 1,000,000 tokens | 1,000,000 tokens |
++| Max ordinary API output | 128,000 tokens | 128,000 tokens |
++| Thinking | Adaptive, on by default | Adaptive, on by default |
++| Effort levels | `low`, `medium`, `high`, `xhigh`, `max` | `low`, `medium`, `high`, `xhigh`, `max` |
++| API default effort | `medium` | `high` |
++| Claude Code default effort | `medium` | `medium` |
++| Lifecycle status | Active, not deprecated | Active, not deprecated |
++| Earliest stated retirement | Not sooner than 2027-10-07 | Not sooner than 2027-09-28 |
++| Model source | [Haiku overview, read 2026-10-08](https://platform.claude.com/docs/en/models/haiku-5-5/overview) | [Sonnet overview, read 2026-10-08](https://platform.claude.com/docs/en/models/sonnet-5-5/overview) |
++
++Sources for the change date and effort rows: [release notes](https://platform.claude.com/docs/en/release-notes/overview), entry 2026-10-07, [API effort documentation](https://platform.claude.com/docs/en/build-with-claude/effort), and [Claude Code configuration](https://code.claude.com/docs/en/model-config), all read 2026-10-08. The tier labels are a shorthand for the vendor positioning, not a benchmark comparison.
++
++All prices below are **USD per 1,000,000 tokens**, read **2026-10-08**. Divide by 1,000,000 for dollars per token. These are standard first-party API token rates.
++
++| Model / prompt length | Uncached input | Output | Cache read | Cache write, 5 minutes | Cache write, 1 hour |
++| --- | ---: | ---: | ---: | ---: | ---: |
++| Haiku 5.5, prompt up to and including 100,000 tokens | $0.10 | $0.50 | $0.01 | $0.125 | $0.20 |
++| Haiku 5.5, prompt over 100,000 tokens | $0.50 | $2.50 | $0.05 | $0.625 | $1.00 |
++| Sonnet 5.5, full context window | $2.00 | $10.00 | **$0.10, previously $0.20** | $2.50 | $4.00 |
++
++Sources for all table prices: [Haiku model pricing](https://platform.claude.com/docs/en/models/haiku-5-5/overview), [Sonnet model pricing](https://platform.claude.com/docs/en/models/sonnet-5-5/overview), and [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing), read 2026-10-08. The Sonnet reduction is explicitly dated **2026-10-07**, with cache writes and every other price unchanged. Haiku's threshold changes both input and output rates. [Release notes](https://platform.claude.com/docs/en/release-notes/overview), entry 2026-10-07, read 2026-10-08.
++
++Both models have a **50% Batch API input/output discount**. Both also advertise a **300,000-token max output in Message Batches beta**, using `output-300k-2026-03-24`. That exception is separate from their ordinary 128,000-token output limit and is not a Claude Code output setting. [Haiku overview](https://platform.claude.com/docs/en/models/haiku-5-5/overview) and [Sonnet overview](https://platform.claude.com/docs/en/models/sonnet-5-5/overview), read 2026-10-08.
++
++Haiku's API permits `thinking: {type: "disabled"}` at `low`, `medium`, or `high`, but rejects it at `xhigh` or `max`. Manual `budget_tokens` thinking is unsupported. Sonnet's lowest API thinking setting is `between_tools`, permitted at `high` and below. **Claude Code exposes neither model's API thinking-off option:** its documentation says thinking cannot be turned off for Haiku 5.5 or Sonnet 5.5. [API effort](https://platform.claude.com/docs/en/build-with-claude/effort), [release notes](https://platform.claude.com/docs/en/release-notes/overview), and [CLI configuration](https://code.claude.com/docs/en/model-config), read 2026-10-08.
++
++Select Haiku explicitly with `claude --model claude-haiku-5-5`. The current first-party `haiku` alias resolves to Haiku 5.5, while the documented AWS, Bedrock, Google Cloud, and Foundry aliases still resolve to Haiku 4.5. The first-party CLI uses Haiku 5.5's native 1M context without a `[1m]` suffix. [Claude Code configuration](https://code.claude.com/docs/en/model-config), read 2026-10-08. The vendor changelog records its addition in **2.1.293**, but does not date that version heading. [Claude Code changelog](https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md), read 2026-10-08.
++
++**Anthropic baseline audit:** only Sonnet 5.5 has an announced repricing in this window. No additional release, rename, repricing, deprecation, or retirement was found for `claude-opus-5-5`, `claude-fable-5-1`, `claude-haiku-4-5`, `claude-opus-5`, `claude-opus-4-8`, `claude-fable-5`, or `claude-sonnet-5` in the reviewed release and pricing records. [Release notes](https://platform.claude.com/docs/en/release-notes/overview) and [pricing](https://platform.claude.com/docs/en/about-claude/pricing), read 2026-10-08.
++
++All eight Anthropic baseline models remain **Active** in the lifecycle table. Haiku 4.5 is listed by its pinned ID `claude-haiku-4-5-20251001`, with retirement **not sooner than 2026-10-15**. That is an earliest commitment boundary, not an announced October 15 shutdown. The latest listed deprecation is Sonnet 4.5, announced **2026-09-30**, outside this window and outside the baseline roster. Haiku 5.5's launch has not deprecated Haiku 4.5. [Anthropic model deprecations](https://platform.claude.com/docs/en/about-claude/model-deprecations), read 2026-10-08.
++
++**OpenAI: CLI default change and adjacent API update**
++
++GPT-6.1 Sol became the Codex default on **2026-10-07**, but its API release was **2026-09-29**. GPT-6 Luna was released **2026-09-22** and gained the beta **Decisions API** endpoint on **2026-10-06**. The latter is an endpoint addition to an existing model, not a new CLI model or token-price reduction. [ChatGPT/Codex changelog](https://learn.chatgpt.com/docs/changelog), entries 2026-10-07, and [API changelog](https://developers.openai.com/api/docs/changelog), entries 2026-09-29, 2026-09-22, and 2026-10-06, read 2026-10-08.
++
++| Field | GPT-6.1 Sol | GPT-6 Luna |
++| --- | --- | --- |
++| Exact API / CLI ID | `gpt-6.1-sol` | `gpt-6-luna` |
++| Vendor positioning | Workhorse for complex coding and professional work at lower cost than Astra | Cheap tier for focused, high-volume work |
++| Context window | 1,050,000 tokens | 1,050,000 tokens |
++| Max output | 128,000 tokens | 128,000 tokens |
++| API reasoning efforts | `low`, `medium`, `high`, `xhigh`, `max` | `none`, `low`, `medium`, `high`, `xhigh`, `max` |
++| API default effort | `medium` | `medium` |
++| API deprecation | No notice found | No notice found |
++| Model source | [Sol model page, read 2026-10-08](https://developers.openai.com/api/docs/models/gpt-6.1-sol) | [Luna model page, read 2026-10-08](https://developers.openai.com/api/docs/models/gpt-6-luna) |
++
++Deprecation source for both rows: [OpenAI API deprecations](https://developers.openai.com/api/docs/deprecations), read 2026-10-08. Sol rejects `none` and `minimal`. Codex additionally offers **Ultra** for supported models as a multi-agent mode, beyond the ordinary API effort list. Luna supports up to Max, **not Ultra**. Codex 0.161.0 adds Ultra and multi-agent V2 on compatible Bedrock models. [Sol model page](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [Codex models](https://learn.chatgpt.com/docs/models), and [Codex changelog](https://learn.chatgpt.com/docs/changelog), read 2026-10-08.
++
++Standard prices, **USD per 1,000,000 tokens**, read **2026-10-08**:
++
++| Model / input length | Uncached input | Cached input | Cache write | Output |
++| --- | ---: | ---: | ---: | ---: |
++| GPT-6.1 Sol, up to 272K | $2.00 | $0.10 | $2.50 | $10.00 |
++| GPT-6.1 Sol, over 272K | $4.00 | $0.20 | $5.00 | $15.00 |
++| GPT-6 Luna, up to 272K | $0.10 | $0.01 | $0.125 | $0.50 |
++| GPT-6 Luna, over 272K | $0.20 | $0.02 | $0.25 | $0.75 |
++
++Sources for all prices: [OpenAI pricing](https://developers.openai.com/api/docs/pricing), [Sol model page](https://developers.openai.com/api/docs/models/gpt-6.1-sol), and [Luna model page](https://developers.openai.com/api/docs/models/gpt-6-luna), read 2026-10-08. The long-input multipliers apply to the **full request**. Batch and Flex cost 50% of Standard, and Fast costs twice Standard. These API rates are distinct from ChatGPT subscription usage credits. [Sol model page](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [Luna model page](https://developers.openai.com/api/docs/models/gpt-6-luna), and [Work/Codex pricing](https://learn.chatgpt.com/docs/pricing), read 2026-10-08.
++
++**OpenAI baseline audit:** no new token repricing, rename, deprecation, or retirement was found for any of `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6-luna`, `gpt-6-sol`, `gpt-5.6-sol`, `gpt-5.6-terra`, or `gpt-5.6-luna` in the reviewed dated records. GPT-5.6 Sol's current promotional pricing remains guaranteed at least through **2026-11-21**. That reduction was announced **2026-08-21**, before the baseline. [API changelog](https://developers.openai.com/api/docs/changelog), [API pricing](https://developers.openai.com/api/docs/pricing), and [API deprecations](https://developers.openai.com/api/docs/deprecations), read 2026-10-08.
++
++**Previously announced retirement relevant to the supplied local list:** `gpt-5.5` retires from Codex with ChatGPT sign-in on **2026-10-14**, across all plans. The announcement was **2026-09-14**, so it is not new drift. The OpenAI API is unaffected. Its appearance in the supplied October 8 CLI list is compatible with a future retirement. [ChatGPT/Codex changelog](https://learn.chatgpt.com/docs/changelog), entry 2026-09-14, and [Codex model documentation](https://learn.chatgpt.com/docs/models), read 2026-10-08. The local-list observation itself is supplied by the [research brief](/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/drift-brief.md), dated/read 2026-10-08, not independently tested here.
++
++Two additional OpenAI items do not add a general-purpose CLI model: the API changelog updates `chat-latest` on **2026-10-07**, and GPT-Rosalind research billing begins **2026-10-05** under restricted research access. Neither appears in the supplied CLI roster. Codex 0.161.0 also changes **Daybreak access routing** to explicit opt-in and adds a per-turn Cyber program override, without announcing a new model ID. [API changelog](https://developers.openai.com/api/docs/changelog), [API pricing](https://developers.openai.com/api/docs/pricing), [Codex changelog](https://learn.chatgpt.com/docs/changelog), and [supplied brief](/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/drift-brief.md), all read 2026-10-08.
++
++**Evidence limits:** absence findings concern published changes in the specified window. Current pages establish today's settings and prices but do not, alone, prove they were identical on October 4. Dated changelogs establish the identified changes. No inference requests or CLI upgrades were performed, so account-specific access and behavior of older installed clients were not tested.
+
+tokens used
+173,220
+Wrote the [report](/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/drift-models-gpt-6-1-sol.md) with dated vendor citations, model specifications, pricing changes, and retirement checks. Left uncommitted as instructed.

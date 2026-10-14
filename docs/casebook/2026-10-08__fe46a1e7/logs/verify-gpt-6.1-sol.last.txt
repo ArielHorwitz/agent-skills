@@ -1,0 +1,5 @@
+Wrote [verification.md](/tmp/verify.XkpL/gpt-6.1-sol/verification.md).
+
+Checked 47 claims: 42 HOLDS, 1 FAILS, 1 STALE, and 3 UNSUPPORTED. The report includes corrections, source dates, evidence limitations, and shipping-content flags.
+
+The draft is unchanged.

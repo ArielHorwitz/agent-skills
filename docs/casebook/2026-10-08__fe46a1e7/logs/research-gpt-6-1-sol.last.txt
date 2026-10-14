@@ -1,0 +1,3 @@
+Completed the live research and wrote [the report](/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/research-gpt-6-1-sol.md), including independent comparisons, measured task costs, effort tradeoffs, and evidence gaps.
+
+Only the requested report was created. Left uncommitted as instructed.

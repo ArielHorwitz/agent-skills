@@ -91,7 +91,10 @@ shows a gap.
   run's stray report landed at the worktree root). Researchers and synthesizers
   run in the case directory. Verifiers run from a scratch directory outside the
   repo holding a copy of the draft, so they stay blind, and you copy their
-  reports into the case.
+  reports into the case. A headless claude delegate is denied reads outside
+  its working directory, so give `--add-dir <worktree>` to any claude spawn
+  whose inputs live elsewhere (synthesizers reading the previous case and
+  the shipped file).
 - **Run log.** Keep one `run-log.md` in the case: phase notes, and per spawn the
   role, model and effort, session id, cost if reported, and outcome, plus
   lessons as they come up.
@@ -101,7 +104,30 @@ shows a gap.
 - **Usage limits.** A run can exhaust either vendor's subscription limit
   mid-phase. Check every spawn's output for a usage-limit error rather than
   trusting its exit status, re-run what hit one after the reset, and expect the
-  run to span limit windows.
+  run to span limit windows. Match the error line itself (codex prints
+  `ERROR: You've hit your usage limit`), not the bare phrase, which also turns
+  up in files a delegate read and echoed into its log.
+
+## Incremental runs
+
+When the user asks for a light refresh soon after a full one, because a model
+or two shipped, scale the phases down rather than skipping principles:
+
+- Drift still runs, to catch other releases. If the new model is known up
+  front, research can start alongside it, and anything drift finds gets a
+  follow-up round.
+- Research covers only the new models, each placed against the existing rows
+  it competes with (named in the brief, still without their ratings). Two or
+  three researchers are enough, weighted toward vendors other than the new
+  model's.
+- Two synthesizers still, given the previous case's research, reconciliation,
+  and user decisions as the evidence for existing rows. They place the new
+  rows and say for every existing row whether it moves.
+- Verification covers only new or changed claims, with at least three
+  verifiers.
+- Tools re-verification runs only if an installed CLI version changed.
+- If days pass at the user gate, recheck the vendor changelogs before
+  shipping.
 
 ## Phases
 
@@ -146,6 +172,10 @@ Produces `drift-models-<model>.md` per drift researcher, your merged
   ("Reply with OK") from a scratch directory (codex needs
   `--skip-git-repo-check` there). A model the user's account can't run doesn't
   belong in the roster. This is a gate on the roster, not a capability test.
+  Also read the result for signs the installed CLI predates the model (claude's
+  `unrecognized_model` warning, or a reported context window or max output
+  below the vendor's): the ID can run yet behave wrong. Upgrading is the
+  user's call, so raise it.
 
 The report gives a **candidate roster** (add, keep, drop, each with a reason and
 its smoke result) and the tool changes. Drop here only what is retired or can't

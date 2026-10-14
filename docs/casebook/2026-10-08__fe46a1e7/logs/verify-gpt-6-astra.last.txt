@@ -1,0 +1,3 @@
+Created [verification.md](/tmp/verify.XkpL/gpt-6-astra/verification.md) with 50 cited claim verdicts.
+
+Most claims hold. Key flags concern Sonnet’s outdated cost direction, Haiku’s broad workflow comparison, and provisional benchmark costs. The draft remains unchanged.

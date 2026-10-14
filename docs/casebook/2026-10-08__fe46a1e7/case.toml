@@ -1,0 +1,4 @@
+title = "Incremental delegate catalog refresh for Claude Haiku 5.5 and any other model released since the 2026-10-04 refresh"
+status = "closed"
+created = "2026-10-08T13:20:00"
+keywords = ["delegate-catalog-refresh", "delegate", "models.md", "haiku-5-5", "incremental-refresh", "model-roster"]

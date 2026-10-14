@@ -1,0 +1,6 @@
+Created and checked both files:
+
+- [Synthesis]( /mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/synthesis-gpt-6-astra.md)
+- [Catalog draft](/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/models-draft-gpt-6-astra.md)
+
+Haiku 5.5 replaces 4.5 at **2/2/lowest**, with cost qualifications. Other ratings remain unchanged. Updated pricing and effort guidance, including Sonnet’s cost caveat. No commit made.

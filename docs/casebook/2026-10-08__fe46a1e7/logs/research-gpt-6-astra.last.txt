@@ -1,0 +1,3 @@
+Wrote the [research report](/mnt/black/prog/agent-skills/.worktrees/refresh-catalog-haiku-5-5/docs/casebook/2026-10-08__fe46a1e7/research-gpt-6-astra.md).
+
+Recommendation: replace Haiku 4.5 for bounded tasks, but retain larger models for difficult work. Haiku 5.5’s cost advantage depends strongly on effort and context length. Includes independent comparisons, evidence limitations, and the October 7 OpenAI update. No commit made, as instructed.
